@@ -388,15 +388,18 @@ html, body {
   letter-spacing: 1px;
   margin-top: 6px;
 }
+#viewer-grade-badge {
+  margin: 6px 0 2px;
+}
 .grade-badge {
   display: inline-block;
   background: linear-gradient(135deg, #1a6bff, #00c6ff);
   color: #fff;
-  font-size: 11px; font-weight: 700;
-  padding: 3px 10px; border-radius: 4px;
+  font-size: 12px; font-weight: 700;
+  padding: 4px 12px; border-radius: 4px;
   letter-spacing: 0.5px;
-  margin-top: 4px;
   font-family: var(--mono);
+  box-shadow: 0 2px 8px rgba(26, 107, 255, 0.3);
 }
 
 /* ─── CAREER STATS PANEL ─── */
@@ -951,6 +954,7 @@ html, body {
           <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>
         </button>
       </div>
+      <div id="viewer-grade-badge"></div>
       <div class="card-value-row">
         <span class="card-value" id="viewer-value"></span>
         <a class="comps-link" id="viewer-comps" href="#" target="_blank" rel="noopener">
@@ -959,7 +963,6 @@ html, body {
         </a>
       </div>
       <div id="viewer-badge"></div>
-      <div id="viewer-grade-badge"></div>
     </div>
     <div id="stats-container"></div>
     <div style="height:20px;"></div>
@@ -1600,7 +1603,7 @@ function renderViewerCard() {
   document.getElementById('viewer-back-img').src = card.backImg || '';
   document.getElementById('viewer-player').textContent = card.player;
   document.getElementById('viewer-details').textContent =
-    `${card.year} ${card.set}${card.subset ? ' · ' + card.subset : ''}${card.serial ? ' ' + card.serial : ''}`;
+    `${card.year} ${card.set}${card.subset ? ' · ' + card.subset : ''}${card.serial ? ' ' + card.serial : ''}${card.grade ? ' · ' + card.grade : ''}`;
   document.getElementById('viewer-value').textContent = card.value || '';
 
   // Build eBay sold-listings comps link
