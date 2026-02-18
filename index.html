@@ -1832,13 +1832,15 @@ async function analyzeCard() {
   spinner.classList.add('visible');
 
   try {
+    // Compress images for API (max 1200px, keeps detail for reading text but fits payload limit)
+    const frontCompressed = await compressImage(pendingFrontData, 1200, 0.8);
+    const backCompressed = await compressImage(pendingBackData, 1200, 0.8);
+
     // Extract base64 data (remove data:image/...;base64, prefix)
-    const frontB64 = (pendingFrontData.split(',')[1]) || '';
-    const backB64 = (pendingBackData.split(',')[1]) || '';
-    const frontTypeMatch = pendingFrontData.match(/data:(.*?);/);
-    const backTypeMatch = pendingBackData.match(/data:(.*?);/);
-    const frontType = frontTypeMatch ? frontTypeMatch[1] : 'image/jpeg';
-    const backType = backTypeMatch ? backTypeMatch[1] : 'image/jpeg';
+    const frontB64 = (frontCompressed.split(',')[1]) || '';
+    const backB64 = (backCompressed.split(',')[1]) || '';
+    const frontType = 'image/jpeg';
+    const backType = 'image/jpeg';
 
     if (!frontB64 || !backB64) {
       throw new Error('Invalid image data. Please re-upload your photos.');
