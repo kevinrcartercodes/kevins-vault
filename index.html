@@ -340,10 +340,34 @@ html, body {
   flex-shrink: 0;
 }
 .wrench-btn:active { color: var(--gold); background: rgba(201,168,76,0.1); }
+.card-value-row {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  margin-top: 6px;
+}
 .viewer-info .card-value {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 16px; color: var(--gold); margin-top: 6px;
+  font-size: 16px; color: var(--gold);
 }
+.comps-link {
+  display: none; align-items: center; gap: 3px;
+  font-size: 11px; color: var(--blue-link);
+  text-decoration: none;
+  padding: 2px 8px;
+  border: 1px solid rgba(91,143,212,0.25);
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+.comps-link.visible { display: inline-flex; }
+.comps-link:active { background: rgba(91,143,212,0.1); }
+.comps-link svg { flex-shrink: 0; }
+
+.comps-link-inline {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 12px; color: var(--blue-link);
+  text-decoration: none;
+  margin-top: 6px;
+}
+.comps-link-inline svg { flex-shrink: 0; }
 .viewer-info .hof-badge {
   display: inline-block;
   background: linear-gradient(135deg, var(--gold-dark), var(--gold));
@@ -906,7 +930,13 @@ html, body {
           <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>
         </button>
       </div>
-      <div class="card-value" id="viewer-value"></div>
+      <div class="card-value-row">
+        <span class="card-value" id="viewer-value"></span>
+        <a class="comps-link" id="viewer-comps" href="#" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          View comps
+        </a>
+      </div>
       <div id="viewer-badge"></div>
     </div>
     <div id="stats-container"></div>
@@ -1033,6 +1063,10 @@ html, body {
       <div class="result-field">
         <label>Estimated Value</label>
         <input type="text" id="res-value" placeholder="$0.00">
+        <a class="comps-link-inline" id="res-comps" href="#" target="_blank" rel="noopener" style="display:none;">
+          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          Check eBay sold prices
+        </a>
       </div>
       <div class="result-actions">
         <button class="btn-cancel" onclick="resetScan()">Discard</button>
@@ -1360,6 +1394,21 @@ function openViewer(cardId) {
   }, 3000);
 }
 
+function buildCompsUrl(card) {
+  // Build an eBay sold-listings search URL from card details
+  if (!card.player) return null;
+  const parts = [];
+  if (card.year) parts.push(card.year);
+  if (card.set) parts.push(card.set);
+  if (card.subset) parts.push(card.subset);
+  parts.push(card.player);
+  if (card.autograph === 'yes') parts.push('auto');
+  if (card.serial) parts.push(card.serial);
+  const query = parts.join(' ');
+  return 'https://www.ebay.com/sch/i.html?_nkw=' + encodeURIComponent(query)
+    + '&LH_Complete=1&LH_Sold=1&_sacat=212';  // 212 = Sports Trading Cards
+}
+
 function renderViewerCard() {
   const card = viewerCards[viewerIndex];
   if (!card) return;
@@ -1372,10 +1421,24 @@ function renderViewerCard() {
   document.getElementById('viewer-details').textContent =
     `${card.year} ${card.set}${card.subset ? ' · ' + card.subset : ''}${card.serial ? ' ' + card.serial : ''}`;
   document.getElementById('viewer-value').textContent = card.value || '';
+
+  // Build eBay sold-listings comps link
+  const compsEl = document.getElementById('viewer-comps');
+  const compsUrl = buildCompsUrl(card);
+  if (compsUrl) {
+    compsEl.href = compsUrl;
+    compsEl.classList.add('visible');
+  } else {
+    compsEl.classList.remove('visible');
+  }
+
   document.getElementById('viewer-badge').innerHTML =
     card.hof === 'yes' ? '<span class="hof-badge">★ Hall of Fame</span>' : '';
   document.getElementById('viewer-counter').textContent =
     `${viewerIndex + 1} / ${viewerCards.length}`;
+
+  // Scroll back to top when switching cards
+  document.getElementById('viewer-scroll').scrollTop = 0;
 
   // Fetch and display career stats
   loadPlayerStats(card.player);
@@ -1944,6 +2007,14 @@ Be precise about the year, set name, and card number. Check the back of the card
     document.getElementById('res-hof').value = cardData.hof || 'no';
     document.getElementById('res-value').value = cardData.value || '';
 
+    // Show eBay comps link for the analyzed card
+    const resComps = document.getElementById('res-comps');
+    const resCompsUrl = buildCompsUrl(cardData);
+    if (resCompsUrl) {
+      resComps.href = resCompsUrl;
+      resComps.style.display = 'inline-flex';
+    }
+
     document.getElementById('analysis-result').classList.add('visible');
 
   } catch (err) {
@@ -1986,6 +2057,7 @@ function resetScan() {
   document.getElementById('front-slot').classList.remove('has-img');
   document.getElementById('back-slot').classList.remove('has-img');
   document.getElementById('analysis-result').classList.remove('visible');
+  document.getElementById('res-comps').style.display = 'none';
   updateAnalyzeBtn();
 }
 
