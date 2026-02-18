@@ -1924,11 +1924,6 @@ function updateAnalyzeBtn() {
 
 // ─── ANALYZE CARD via Claude API ───
 async function analyzeCard() {
-  const apiKey = getApiKey();
-  if (!apiKey) {
-    showApiKeyModal();
-    return;
-  }
   if (!pendingFrontData || !pendingBackData) return;
 
   const spinner = document.getElementById('spinner');
@@ -1941,16 +1936,13 @@ async function analyzeCard() {
     const frontType = pendingFrontData.match(/data:(.*?);/)[1];
     const backType = pendingBackData.match(/data:(.*?);/)[1];
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetch('/.netlify/functions/analyze', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-5-20250514',
+        model: 'claude-3-opus-20240229',
         max_tokens: 1024,
         messages: [{
           role: 'user',
