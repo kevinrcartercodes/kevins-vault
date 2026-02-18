@@ -2215,10 +2215,16 @@ async function analyzeCard() {
 
   try {
     // Extract base64 data (remove data:image/...;base64, prefix)
-    const frontB64 = pendingFrontData.split(',')[1];
-    const backB64 = pendingBackData.split(',')[1];
-    const frontType = pendingFrontData.match(/data:(.*?);/)[1];
-    const backType = pendingBackData.match(/data:(.*?);/)[1];
+    const frontB64 = (pendingFrontData.split(',')[1]) || '';
+    const backB64 = (pendingBackData.split(',')[1]) || '';
+    const frontTypeMatch = pendingFrontData.match(/data:(.*?);/);
+    const backTypeMatch = pendingBackData.match(/data:(.*?);/);
+    const frontType = frontTypeMatch ? frontTypeMatch[1] : 'image/jpeg';
+    const backType = backTypeMatch ? backTypeMatch[1] : 'image/jpeg';
+
+    if (!frontB64 || !backB64) {
+      throw new Error('Invalid image data. Please re-upload your photos.');
+    }
 
     const response = await fetch('/.netlify/functions/analyze', {
       method: 'POST',
