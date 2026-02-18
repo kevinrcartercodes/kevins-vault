@@ -1332,6 +1332,18 @@ function showScreen(id) {
 // ─── RENDER HOME ───
 function renderHome() {
   cards = loadCards();
+
+  // Auto-correct HoF status for all cards against master list
+  let changed = false;
+  cards.forEach(c => {
+    const hofMatch = findHofPlayer(c.player);
+    if (hofMatch && c.hof !== 'yes') {
+      c.hof = 'yes';
+      changed = true;
+    }
+  });
+  if (changed) saveCards(cards);
+
   const hofCards = cards.filter(c => c.hof === 'yes');
   const otherCards = cards.filter(c => c.hof !== 'yes');
 
