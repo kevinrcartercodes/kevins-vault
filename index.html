@@ -1989,8 +1989,10 @@ function drawEditorCanvas() {
 
 function editorResetCrop() {
   const canvas = document.getElementById('editor-canvas');
-  const pad = 8;
-  cropBox = { x: pad, y: pad, w: canvas.width - pad * 2, h: canvas.height - pad * 2 };
+  const cr = canvas.getBoundingClientRect();
+  const pad = 4;
+  // cropBox is in SCREEN pixels relative to the canvas display area
+  cropBox = { x: pad, y: pad, w: cr.width - pad * 2, h: cr.height - pad * 2 };
   updateCropUI();
 }
 
@@ -2022,13 +2024,22 @@ function editorCancel() {
 }
 
 function editorApply() {
-  // Extract the cropped region from the canvas
+  // Convert screen-pixel cropBox to canvas internal pixels
   const canvas = document.getElementById('editor-canvas');
+  const cr = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / cr.width;
+  const scaleY = canvas.height / cr.height;
+
+  const sx = Math.round(cropBox.x * scaleX);
+  const sy = Math.round(cropBox.y * scaleY);
+  const sw = Math.round(cropBox.w * scaleX);
+  const sh = Math.round(cropBox.h * scaleY);
+
   const outCanvas = document.createElement('canvas');
-  outCanvas.width = Math.round(cropBox.w);
-  outCanvas.height = Math.round(cropBox.h);
+  outCanvas.width = sw;
+  outCanvas.height = sh;
   const outCtx = outCanvas.getContext('2d');
-  outCtx.drawImage(canvas, cropBox.x, cropBox.y, cropBox.w, cropBox.h, 0, 0, cropBox.w, cropBox.h);
+  outCtx.drawImage(canvas, sx, sy, sw, sh, 0, 0, sw, sh);
 
   const data = outCanvas.toDataURL('image/jpeg', 0.92);
 
@@ -2070,7 +2081,8 @@ function onCropDrag(e) {
   const dx = pos.x - dragStart.x;
   const dy = pos.y - dragStart.y;
   const canvas = document.getElementById('editor-canvas');
-  const cw = canvas.width, ch = canvas.height;
+  const cr = canvas.getBoundingClientRect();
+  const cw = cr.width, ch = cr.height;  // use display size, not internal pixels
   const minS = 40;
 
   if (dragging === 'move') {
