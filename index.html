@@ -1177,7 +1177,12 @@ function loadCards() {
   catch { return []; }
 }
 function saveCards(cards) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(cards));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(cards));
+  } catch (e) {
+    console.error('Storage error:', e);
+    toast('Storage full — try removing old cards', true);
+  }
 }
 function getApiKey() { return localStorage.getItem(API_KEY_KEY) || window.VAULT_API_KEY || ''; }
 function setApiKey(k) { localStorage.setItem(API_KEY_KEY, k); }
@@ -1924,7 +1929,32 @@ Be precise about the year, set name, and card number. Check the back of the card
   }
 }
 
-function saveCard() {
+function compressImage(dataUrl, maxDim, quality) {
+  return new Promise(function(resolve) {
+    if (!dataUrl || !dataUrl.startsWith('data:')) { resolve(dataUrl); return; }
+    var img = new Image();
+    img.onload = function() {
+      var w = img.width, h = img.height;
+      if (w > maxDim || h > maxDim) {
+        var scale = maxDim / Math.max(w, h);
+        w = Math.round(w * scale);
+        h = Math.round(h * scale);
+      }
+      var c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      c.getContext('2d').drawImage(img, 0, 0, w, h);
+      resolve(c.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = function() { resolve(dataUrl); };
+    img.src = dataUrl;
+  });
+}
+
+async function saveCard() {
+  // Compress images to fit in localStorage (~800px max, 0.7 quality ≈ 50-100KB each)
+  var frontCompressed = await compressImage(pendingFrontData, 800, 0.7);
+  var backCompressed = await compressImage(pendingBackData, 800, 0.7);
+
   const newCard = {
     id: Date.now().toString(),
     player: document.getElementById('res-player').value,
@@ -1936,8 +1966,8 @@ function saveCard() {
     autograph: document.getElementById('res-auto').value,
     hof: document.getElementById('res-hof').value,
     value: document.getElementById('res-value').value,
-    frontImg: pendingFrontData,
-    backImg: pendingBackData,
+    frontImg: frontCompressed,
+    backImg: backCompressed,
     addedDate: new Date().toISOString()
   };
 
