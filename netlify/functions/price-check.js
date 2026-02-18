@@ -51,7 +51,7 @@ exports.handler = async (event) => {
       });
 
       const html = await resp.text();
-      const prices = extractPrices(html);
+      const prices = extractPrices(html, card);
 
       if (prices.length >= 2) {
         bestResult = { query, prices };
@@ -99,14 +99,26 @@ exports.handler = async (event) => {
   }
 };
 
-function extractPrices(html) {
-  const prices = [];
+function extractPrices(html, card) {
+  const allPrices = [];
   // eBay uses s-card__price or s-item__price depending on layout
   const priceRegex = /(?:s-card__price|s-item__price)">\s*\$([0-9,]+\.\d{2})/g;
   let match;
   while ((match = priceRegex.exec(html)) !== null) {
     const price = parseFloat(match[1].replace(/,/g, ''));
-    if (price > 0.99) prices.push(price);
+    if (price > 0.99) allPrices.push(price);
   }
-  return prices;
+
+  // Set a minimum price floor to filter out base card noise
+  // Autos and numbered cards don't sell for $5
+  let floor = 5;
+  if (card.autograph === 'yes') floor = 15;
+  if (card.serial) {
+    const num = parseInt(card.serial.replace(/\//g, ''));
+    if (num <= 10) floor = 50;
+    else if (num <= 25) floor = 25;
+  }
+  if (card.grade) floor = Math.max(floor, 20);
+
+  return allPrices.filter(p => p >= floor);
 }
