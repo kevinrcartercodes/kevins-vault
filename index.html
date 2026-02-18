@@ -2076,21 +2076,28 @@ Return ONLY the JSON, no other text.`
     document.getElementById('res-hof').value = hofMatch ? 'yes' : (cardData.hof || 'no');
 
     // Fetch real eBay sold comps to set value
+    document.getElementById('res-value').value = cardData.value || '';
     try {
       const priceResp = await fetch('/.netlify/functions/price-check', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(cardData),
+        body: JSON.stringify({
+          player: cardData.player,
+          year: cardData.year,
+          set: cardData.set,
+          subset: cardData.subset,
+          serial: cardData.serial,
+          autograph: cardData.autograph,
+          grade: cardData.grade,
+        }),
       });
       const priceData = await priceResp.json();
+      console.log('Price check result:', priceData);
       if (priceData.found && priceData.median > 0) {
         document.getElementById('res-value').value = '$' + priceData.median.toLocaleString();
-      } else {
-        document.getElementById('res-value').value = cardData.value || '';
       }
     } catch (e) {
-      // Fall back to AI estimate if comps fetch fails
-      document.getElementById('res-value').value = cardData.value || '';
+      console.error('Price check failed:', e);
     }
 
     // Show eBay comps link for the analyzed card
