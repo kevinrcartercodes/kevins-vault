@@ -1173,17 +1173,26 @@ const STORAGE_KEY = 'vault_cards';
 const API_KEY_KEY = 'vault_api_key';
 
 function loadCards() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
-  catch { return []; }
+  // Return cached cards (fetched async on init)
+  return window._cardsCache || [];
 }
-function saveCards(cards) {
+
+async function fetchCards() {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(cards));
-    return true;
+    const resp = await fetch('/.netlify/functions/get-cards');
+    const data = await resp.json();
+    window._cardsCache = Array.isArray(data) ? data : [];
   } catch (e) {
-    console.error('Storage error:', e);
-    return false;
+    console.error('Fetch cards error:', e);
+    window._cardsCache = [];
   }
+  return window._cardsCache;
+}
+
+function saveCards(cards) {
+  // Update local cache only — actual persistence is done via save-card/delete-card API
+  window._cardsCache = cards;
+  return true;
 }
 function getApiKey() { return localStorage.getItem(API_KEY_KEY) || window.VAULT_API_KEY || ''; }
 function setApiKey(k) { localStorage.setItem(API_KEY_KEY, k); }
@@ -2031,48 +2040,46 @@ async function saveCard() {
   const playerName = document.getElementById('res-player').value;
   const hofMatch = findHofPlayer(playerName);
 
-  // Try progressively smaller images until it fits in localStorage
-  const sizes = [
-    { dim: 600, q: 0.6 },
-    { dim: 400, q: 0.5 },
-    { dim: 300, q: 0.4 },
-  ];
+  // Compress images for storage (~600px, good enough for viewing)
+  var frontCompressed = await compressImage(pendingFrontData, 600, 0.65);
+  var backCompressed = await compressImage(pendingBackData, 600, 0.65);
 
-  for (let i = 0; i < sizes.length; i++) {
-    var frontCompressed = await compressImage(pendingFrontData, sizes[i].dim, sizes[i].q);
-    var backCompressed = await compressImage(pendingBackData, sizes[i].dim, sizes[i].q);
+  const newCard = {
+    id: Date.now().toString(),
+    player: playerName,
+    set: document.getElementById('res-set').value,
+    year: parseInt(document.getElementById('res-year').value) || 0,
+    number: document.getElementById('res-number').value,
+    subset: document.getElementById('res-subset').value,
+    serial: document.getElementById('res-serial').value,
+    autograph: document.getElementById('res-auto').value,
+    hof: hofMatch ? 'yes' : document.getElementById('res-hof').value,
+    inductionYear: hofMatch ? hofMatch.inducted : null,
+    value: document.getElementById('res-value').value,
+    frontImg: frontCompressed,
+    backImg: backCompressed,
+    addedDate: new Date().toISOString()
+  };
 
-    const newCard = {
-      id: Date.now().toString(),
-      player: playerName,
-      set: document.getElementById('res-set').value,
-      year: parseInt(document.getElementById('res-year').value) || 0,
-      number: document.getElementById('res-number').value,
-      subset: document.getElementById('res-subset').value,
-      serial: document.getElementById('res-serial').value,
-      autograph: document.getElementById('res-auto').value,
-      hof: hofMatch ? 'yes' : document.getElementById('res-hof').value,
-      inductionYear: hofMatch ? hofMatch.inducted : null,
-      value: document.getElementById('res-value').value,
-      frontImg: frontCompressed,
-      backImg: backCompressed,
-      addedDate: new Date().toISOString()
-    };
+  try {
+    const resp = await fetch('/.netlify/functions/save-card', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newCard),
+    });
+    const result = await resp.json();
+    if (!resp.ok) throw new Error(result.error || 'Save failed');
 
-    cards = loadCards();
-    cards.push(newCard);
-    if (saveCards(cards)) {
-      toast('Card added to your vault!');
-      resetScan();
-      showScreen('home-screen');
-      return;
-    }
-    // Save failed — try smaller
-    cards.pop();
+    // Update local cache
+    window._cardsCache = window._cardsCache || [];
+    window._cardsCache.push(newCard);
+
+    toast('Card added to your vault!');
+    resetScan();
+    showScreen('home-screen');
+  } catch (err) {
+    toast('Error saving: ' + err.message, true);
   }
-
-  // All sizes failed
-  toast('Storage full — remove old cards to make room', true);
 }
 
 function resetScan() {
@@ -2104,8 +2111,8 @@ function editCurrentCard() {
   showScreen('edit-screen');
 }
 
-function saveEditedCard() {
-  cards = loadCards();
+async function saveEditedCard() {
+  const cards = loadCards();
   const idx = cards.findIndex(c => c.id === editingCardId);
   if (idx < 0) return;
   cards[idx].player = document.getElementById('edit-player').value;
@@ -2117,20 +2124,39 @@ function saveEditedCard() {
   cards[idx].autograph = document.getElementById('edit-auto').value;
   cards[idx].hof = document.getElementById('edit-hof').value;
   cards[idx].value = document.getElementById('edit-value').value;
-  saveCards(cards);
-  viewerCards = cards;
-  renderViewerCard();
-  toast('Card updated!');
-  showScreen('viewer-screen');
+
+  try {
+    const resp = await fetch('/.netlify/functions/save-card', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(cards[idx]),
+    });
+    if (!resp.ok) throw new Error('Save failed');
+    saveCards(cards);
+    viewerCards = cards;
+    renderViewerCard();
+    toast('Card updated!');
+    showScreen('viewer-screen');
+  } catch (err) {
+    toast('Error saving: ' + err.message, true);
+  }
 }
 
-function deleteCurrentCard() {
+async function deleteCurrentCard() {
   if (!confirm('Remove this card from your collection?')) return;
-  cards = loadCards();
-  cards = cards.filter(c => c.id !== editingCardId);
-  saveCards(cards);
-  toast('Card removed');
-  showScreen('home-screen');
+  try {
+    const resp = await fetch('/.netlify/functions/delete-card', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cardId: editingCardId }),
+    });
+    if (!resp.ok) throw new Error('Delete failed');
+    window._cardsCache = (window._cardsCache || []).filter(c => c.id !== editingCardId);
+    toast('Card removed');
+    showScreen('home-screen');
+  } catch (err) {
+    toast('Error deleting: ' + err.message, true);
+  }
 }
 
 // ─── API KEY MODAL ───
@@ -2162,7 +2188,8 @@ function toast(msg, isError) {
 }
 
 // ─── INIT ───
-renderHome();
+// Fetch cards from server, then render
+fetchCards().then(function() { renderHome(); });
 
 // Drag & drop on scan zone
 const scanZone = document.getElementById('scan-zone');
