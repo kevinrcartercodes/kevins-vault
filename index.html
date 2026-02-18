@@ -1,0 +1,2080 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Kevin's Vault — Baseball Card Collection</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=JetBrains+Mono:wght@300;400;500&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --gold: #c9a84c;
+  --gold-bright: #e8c84a;
+  --gold-dark: #8a6d2b;
+  --midnight: #0a0e17;
+  --ink: #12182a;
+  --slate: #1c2333;
+  --panel: #161d2e;
+  --ghost: #2a3450;
+  --silver: #8b95a8;
+  --bone: #e8e0d0;
+  --cream: #f5f0e5;
+  --red-accent: #c4383a;
+  --green-check: #3a9e5c;
+  --blue-link: #5b8fd4;
+  --card-radius: 12px;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  background: var(--midnight);
+  color: var(--cream);
+  font-family: 'Outfit', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── SCREEN MANAGEMENT ─── */
+.screen {
+  position: fixed; inset: 0;
+  display: none;
+  flex-direction: column;
+  background: var(--midnight);
+  z-index: 1;
+  overflow: hidden;
+}
+.screen.active { display: flex; }
+
+/* ─── BACKGROUND TEXTURE ─── */
+.screen::before {
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse at 20% 0%, rgba(201,168,76,0.07) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 100%, rgba(201,168,76,0.04) 0%, transparent 50%),
+    repeating-linear-gradient(0deg, transparent, transparent 100px, rgba(255,255,255,0.008) 100px, rgba(255,255,255,0.008) 101px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.screen > * { position: relative; z-index: 1; }
+
+/* ─── TOP BAR ─── */
+.top-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 20px;
+  padding-top: max(12px, env(safe-area-inset-top));
+  border-bottom: 1px solid rgba(201,168,76,0.15);
+  backdrop-filter: blur(20px);
+  background: rgba(10,14,23,0.85);
+  flex-shrink: 0;
+}
+
+.top-bar h1 {
+  font-family: 'Playfair Display', serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--gold);
+  letter-spacing: 1px;
+}
+
+.top-bar .back-btn {
+  background: none; border: none; color: var(--gold);
+  font-family: 'Outfit', sans-serif; font-size: 15px;
+  cursor: pointer; padding: 8px 0;
+  display: flex; align-items: center; gap: 4px;
+}
+.top-bar .back-btn::before { content: '‹'; font-size: 22px; line-height: 1; }
+.top-bar .back-btn:active { opacity: 0.5; }
+
+.top-bar .action-btn {
+  background: none; border: none; color: var(--gold);
+  font-size: 22px; cursor: pointer; padding: 8px;
+}
+.top-bar .action-btn:active { opacity: 0.5; }
+
+/* ─── BOTTOM NAV ─── */
+.bottom-nav {
+  display: flex; justify-content: space-around; align-items: center;
+  padding: 8px 0;
+  padding-bottom: max(8px, var(--safe-bottom));
+  border-top: 1px solid rgba(201,168,76,0.15);
+  backdrop-filter: blur(20px);
+  background: rgba(10,14,23,0.9);
+  flex-shrink: 0;
+}
+
+.nav-item {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  background: none; border: none; color: var(--silver);
+  font-family: 'Outfit', sans-serif; font-size: 10px; font-weight: 500;
+  cursor: pointer; padding: 6px 16px; transition: color 0.2s;
+  letter-spacing: 0.5px; text-transform: uppercase;
+}
+.nav-item svg { width: 24px; height: 24px; stroke: currentColor; fill: none; stroke-width: 1.5; }
+.nav-item.active { color: var(--gold); }
+.nav-item:active { opacity: 0.5; }
+
+/* ─── SCROLLABLE CONTENT ─── */
+.scroll-content {
+  flex: 1; overflow-y: auto; overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.scroll-content::-webkit-scrollbar { display: none; }
+
+/* ─── HOME SCREEN ─── */
+.home-hero {
+  padding: 32px 24px 20px;
+  text-align: center;
+}
+.home-hero h2 {
+  font-family: 'Playfair Display', serif;
+  font-size: 28px; font-weight: 900;
+  color: var(--cream);
+  margin-bottom: 4px;
+}
+.home-hero p {
+  color: var(--silver); font-size: 14px; font-weight: 300;
+}
+
+.stats-row {
+  display: flex; justify-content: center; gap: 24px;
+  padding: 16px 24px 24px;
+}
+.stat-box {
+  text-align: center;
+}
+.stat-box .num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 32px; font-weight: 500; color: var(--gold);
+  line-height: 1;
+}
+.stat-box .label {
+  font-size: 11px; color: var(--silver); text-transform: uppercase;
+  letter-spacing: 1px; margin-top: 4px;
+}
+
+.section-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px 24px 12px;
+}
+.section-header h3 {
+  font-family: 'Playfair Display', serif;
+  font-size: 18px; font-weight: 700; color: var(--cream);
+}
+.section-header .see-all {
+  font-size: 13px; color: var(--gold); background: none; border: none;
+  cursor: pointer; font-family: 'Outfit', sans-serif;
+}
+
+/* ─── YEAR GROUPS ─── */
+.year-group {
+  margin: 0 16px 16px;
+  background: var(--panel);
+  border-radius: 12px;
+  border: 1px solid rgba(201,168,76,0.1);
+  overflow: hidden;
+}
+.year-group-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 14px 16px;
+  cursor: pointer;
+  background: rgba(201,168,76,0.04);
+}
+.year-group-header .year {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 16px; font-weight: 500; color: var(--gold);
+}
+.year-group-header .count {
+  font-size: 12px; color: var(--silver);
+  background: var(--ghost);
+  padding: 2px 10px; border-radius: 20px;
+}
+.year-group-header .chevron {
+  color: var(--silver); font-size: 14px;
+  transition: transform 0.3s;
+}
+.year-group.open .chevron { transform: rotate(180deg); }
+
+.year-group-cards {
+  display: none;
+  padding: 8px;
+  gap: 8px;
+}
+.year-group.open .year-group-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+}
+
+.card-thumb {
+  aspect-ratio: 2.5/3.5;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  position: relative;
+  background: var(--ghost);
+  transition: transform 0.2s;
+}
+.card-thumb:active { transform: scale(0.95); }
+.card-thumb img {
+  width: 100%; height: 100%; object-fit: cover;
+}
+.card-thumb .thumb-label {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  background: linear-gradient(transparent, rgba(0,0,0,0.85));
+  padding: 20px 6px 6px;
+  font-size: 10px; font-weight: 500;
+  line-height: 1.2;
+  color: var(--cream);
+}
+.card-thumb.hof .thumb-label::after {
+  content: '★';
+  color: var(--gold);
+  margin-left: 3px;
+  font-size: 9px;
+}
+
+/* ─── CARD VIEWER (SWIPE/FLIP) ─── */
+#viewer-screen .top-bar { background: rgba(10,14,23,0.95); }
+
+.viewer-container {
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden; position: relative;
+  touch-action: pan-y;
+  padding: 20px 0 10px;
+  flex-shrink: 0;
+}
+
+.card-stage {
+  width: 80vw; max-width: 340px;
+  aspect-ratio: 2.5/3.5;
+  perspective: 1200px;
+  position: relative;
+}
+
+.card-flipper {
+  width: 100%; height: 100%;
+  position: relative;
+  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-style: preserve-3d;
+  cursor: pointer;
+}
+.card-flipper.flipped { transform: rotateY(180deg); }
+
+.card-face {
+  position: absolute; inset: 0;
+  backface-visibility: hidden;
+  border-radius: var(--card-radius);
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(201,168,76,0.2);
+  background: var(--ghost);
+}
+.card-face img {
+  width: 100%; height: 100%; object-fit: cover;
+}
+.card-face.back {
+  transform: rotateY(180deg);
+}
+
+.swipe-hint {
+  position: absolute; bottom: 20px; left: 0; right: 0;
+  text-align: center;
+  font-size: 12px; color: var(--silver);
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.card-counter {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px; color: var(--silver);
+  text-align: center; padding: 10px;
+}
+
+/* Swipe animation */
+.card-stage.swipe-left .card-flipper {
+  transition: transform 0.3s ease-in;
+  transform: translateX(-120vw) rotate(-15deg);
+}
+.card-stage.swipe-right .card-flipper {
+  transition: transform 0.3s ease-in;
+  transform: translateX(120vw) rotate(15deg);
+}
+.card-stage.enter-from-left .card-flipper {
+  transform: translateX(-120vw) rotate(-15deg);
+  transition: none;
+}
+.card-stage.enter-from-right .card-flipper {
+  transform: translateX(120vw) rotate(15deg);
+  transition: none;
+}
+.card-stage.enter-settle .card-flipper {
+  transform: translateX(0) rotate(0);
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.viewer-info {
+  padding: 14px 24px 8px;
+  text-align: center;
+}
+.viewer-info .player-name {
+  font-family: 'Playfair Display', serif;
+  font-size: 20px; font-weight: 700; color: var(--cream);
+}
+.card-details-row {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  margin-top: 2px;
+}
+.viewer-info .card-details {
+  font-size: 13px; color: var(--silver);
+}
+.wrench-btn {
+  background: none; border: none; color: var(--silver);
+  cursor: pointer; padding: 4px; border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  transition: color 0.2s, background 0.2s;
+  flex-shrink: 0;
+}
+.wrench-btn:active { color: var(--gold); background: rgba(201,168,76,0.1); }
+.viewer-info .card-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 16px; color: var(--gold); margin-top: 6px;
+}
+.viewer-info .hof-badge {
+  display: inline-block;
+  background: linear-gradient(135deg, var(--gold-dark), var(--gold));
+  color: var(--midnight);
+  font-size: 10px; font-weight: 700;
+  padding: 2px 8px; border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-top: 6px;
+}
+
+/* ─── CAREER STATS PANEL ─── */
+.stats-panel {
+  margin: 0 16px 20px;
+  background: var(--panel);
+  border-radius: 14px;
+  border: 1px solid rgba(201,168,76,0.12);
+  overflow: hidden;
+}
+.stats-panel-header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 12px 16px;
+  background: rgba(201,168,76,0.05);
+  border-bottom: 1px solid rgba(201,168,76,0.08);
+}
+.stats-panel-header h4 {
+  font-family: 'Playfair Display', serif;
+  font-size: 15px; font-weight: 700; color: var(--cream);
+  flex: 1;
+}
+.stats-panel-header .stats-pos {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; color: var(--gold);
+  background: rgba(201,168,76,0.12);
+  padding: 2px 8px; border-radius: 4px;
+}
+.stats-panel-header .stats-years {
+  font-size: 12px; color: var(--silver);
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: rgba(255,255,255,0.03);
+}
+.stat-cell {
+  padding: 10px 6px;
+  text-align: center;
+  background: var(--panel);
+}
+.stat-cell .stat-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--silver);
+  margin-bottom: 3px;
+}
+.stat-cell .stat-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--cream);
+}
+.stat-cell .stat-val.highlight {
+  color: var(--gold);
+}
+
+.stats-panel .stats-bio {
+  padding: 10px 16px;
+  border-top: 1px solid rgba(255,255,255,0.03);
+  display: flex; flex-wrap: wrap; gap: 12px;
+  font-size: 12px; color: var(--silver);
+}
+.stats-bio span { white-space: nowrap; }
+.stats-bio strong { color: var(--cream); font-weight: 500; }
+
+.stats-loading {
+  padding: 24px;
+  text-align: center;
+  color: var(--silver);
+  font-size: 13px;
+}
+.stats-loading .mini-spinner {
+  display: inline-block;
+  width: 16px; height: 16px;
+  border: 2px solid var(--ghost);
+  border-top-color: var(--gold);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  vertical-align: middle;
+  margin-right: 8px;
+}
+
+/* ─── HOF CHECKLIST ─── */
+.checklist-search {
+  margin: 16px 16px 8px;
+  position: relative;
+}
+.checklist-search input {
+  width: 100%;
+  background: var(--panel);
+  border: 1px solid var(--ghost);
+  border-radius: 10px;
+  padding: 12px 16px 12px 40px;
+  color: var(--cream);
+  font-family: 'Outfit', sans-serif;
+  font-size: 15px;
+  outline: none;
+}
+.checklist-search input::placeholder { color: var(--silver); }
+.checklist-search input:focus { border-color: var(--gold); }
+.checklist-search svg {
+  position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+  width: 18px; height: 18px; stroke: var(--silver); fill: none; stroke-width: 2;
+}
+
+.checklist-filters {
+  display: flex; gap: 8px; padding: 8px 16px;
+  overflow-x: auto; scrollbar-width: none;
+}
+.checklist-filters::-webkit-scrollbar { display: none; }
+.filter-chip {
+  flex-shrink: 0;
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--ghost);
+  background: transparent;
+  color: var(--silver);
+  font-family: 'Outfit', sans-serif;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.filter-chip.active {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: var(--midnight);
+  font-weight: 600;
+}
+
+.checklist-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px;
+  margin: 0 16px 1px;
+  background: var(--panel);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.checklist-item:first-of-type { border-radius: 10px 10px 0 0; }
+.checklist-item:last-of-type { border-radius: 0 0 10px 10px; margin-bottom: 16px; }
+.checklist-item:only-of-type { border-radius: 10px; }
+.checklist-item:active { background: var(--ghost); }
+
+.checklist-item .check-circle {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  border: 2px solid var(--ghost);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  color: transparent;
+  font-size: 14px;
+}
+.checklist-item.owned .check-circle {
+  background: var(--green-check);
+  border-color: var(--green-check);
+  color: white;
+}
+.checklist-item .player-info { flex: 1; }
+.checklist-item .player-info .name {
+  font-size: 15px; font-weight: 500; color: var(--cream);
+}
+.checklist-item .player-info .meta {
+  font-size: 12px; color: var(--silver); margin-top: 1px;
+}
+.checklist-item .inducted {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px; color: var(--gold-dark);
+}
+
+/* ─── UPLOAD / SCAN SCREEN ─── */
+.scan-zone {
+  margin: 20px 16px;
+  border: 2px dashed var(--ghost);
+  border-radius: 16px;
+  padding: 32px 20px;
+  display: flex; flex-direction: column; align-items: center;
+  gap: 12px;
+  text-align: center;
+  transition: border-color 0.3s, background 0.3s;
+  cursor: pointer;
+}
+.scan-zone.dragover {
+  border-color: var(--gold);
+  background: rgba(201,168,76,0.05);
+}
+.scan-zone svg {
+  width: 48px; height: 48px; stroke: var(--gold); fill: none; stroke-width: 1.2;
+}
+.scan-zone h3 {
+  font-family: 'Playfair Display', serif;
+  font-size: 18px; color: var(--cream);
+}
+.scan-zone p {
+  font-size: 13px; color: var(--silver);
+  max-width: 240px;
+}
+
+.scan-preview-row {
+  display: flex; gap: 12px; padding: 0 16px; margin-top: 12px;
+  justify-content: center;
+}
+.scan-preview-slot {
+  width: 42vw; max-width: 160px;
+  aspect-ratio: 2.5/3.5;
+  border-radius: 10px;
+  border: 1px solid var(--ghost);
+  background: var(--panel);
+  overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  position: relative;
+  cursor: pointer;
+}
+.scan-preview-slot img {
+  width: 100%; height: 100%; object-fit: cover;
+}
+.scan-preview-slot .slot-label {
+  font-size: 12px; color: var(--silver); text-align: center;
+  line-height: 1.3;
+}
+.scan-preview-slot .remove-img {
+  position: absolute; top: 6px; right: 6px;
+  width: 24px; height: 24px; border-radius: 50%;
+  background: rgba(0,0,0,0.7); border: none;
+  color: white; font-size: 16px; cursor: pointer;
+  display: none; align-items: center; justify-content: center;
+}
+.scan-preview-slot.has-img .remove-img { display: flex; }
+.scan-preview-slot.has-img .slot-label { display: none; }
+
+.analyze-btn {
+  display: block;
+  margin: 20px auto;
+  padding: 14px 40px;
+  background: linear-gradient(135deg, var(--gold-dark), var(--gold));
+  border: none;
+  border-radius: 12px;
+  color: var(--midnight);
+  font-family: 'Outfit', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.2s;
+}
+.analyze-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+.analyze-btn:not(:disabled):active {
+  transform: scale(0.97);
+}
+
+/* ─── ANALYSIS RESULT / EDIT FORM ─── */
+.analysis-result {
+  margin: 16px;
+  background: var(--panel);
+  border-radius: 14px;
+  border: 1px solid rgba(201,168,76,0.15);
+  overflow: hidden;
+  display: none;
+}
+.analysis-result.visible { display: block; }
+
+.result-header {
+  padding: 16px;
+  background: rgba(201,168,76,0.06);
+  border-bottom: 1px solid rgba(201,168,76,0.1);
+  display: flex; align-items: center; gap: 10px;
+}
+.result-header svg {
+  width: 24px; height: 24px; stroke: var(--gold); fill: none; stroke-width: 2;
+}
+.result-header span {
+  font-family: 'Playfair Display', serif;
+  font-size: 16px; color: var(--cream);
+}
+
+.result-field {
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.result-field label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--silver);
+  display: block;
+  margin-bottom: 4px;
+}
+.result-field input, .result-field select {
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: var(--cream);
+  font-family: 'Outfit', sans-serif;
+  font-size: 15px;
+  padding: 4px 0;
+  outline: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s;
+}
+.result-field input:focus, .result-field select:focus {
+  border-bottom-color: var(--gold);
+}
+.result-field select { cursor: pointer; }
+.result-field select option { background: var(--ink); }
+
+.result-actions {
+  display: flex; gap: 10px; padding: 16px;
+}
+.result-actions button {
+  flex: 1; padding: 12px;
+  border-radius: 10px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 14px; font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.result-actions button:active { opacity: 0.7; }
+.btn-save {
+  background: var(--gold); border: none; color: var(--midnight);
+}
+.btn-cancel {
+  background: transparent; border: 1px solid var(--ghost); color: var(--silver);
+}
+
+.verify-banner {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 16px;
+  background: rgba(90, 143, 212, 0.08);
+  border-bottom: 1px solid rgba(90, 143, 212, 0.15);
+  font-size: 12px;
+  color: var(--blue-link);
+  line-height: 1.4;
+}
+.verify-banner svg { flex-shrink: 0; stroke: var(--blue-link); }
+
+/* ─── API KEY MODAL ─── */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.75);
+  display: none; align-items: center; justify-content: center;
+  z-index: 100;
+  padding: 24px;
+}
+.modal-overlay.visible { display: flex; }
+
+.modal {
+  background: var(--ink);
+  border: 1px solid rgba(201,168,76,0.2);
+  border-radius: 16px;
+  padding: 24px;
+  width: 100%;
+  max-width: 360px;
+}
+.modal h3 {
+  font-family: 'Playfair Display', serif;
+  font-size: 18px; color: var(--cream);
+  margin-bottom: 8px;
+}
+.modal p {
+  font-size: 13px; color: var(--silver);
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+.modal input {
+  width: 100%;
+  background: var(--panel);
+  border: 1px solid var(--ghost);
+  border-radius: 10px;
+  padding: 12px 14px;
+  color: var(--cream);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  outline: none;
+  margin-bottom: 16px;
+}
+.modal input:focus { border-color: var(--gold); }
+.modal .modal-btns { display: flex; gap: 10px; }
+.modal .modal-btns button {
+  flex: 1; padding: 12px;
+  border-radius: 10px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 14px; font-weight: 600;
+  cursor: pointer;
+}
+
+/* ─── LOADING SPINNER ─── */
+.spinner-overlay {
+  position: fixed; inset: 0;
+  background: rgba(10,14,23,0.88);
+  display: none; flex-direction: column;
+  align-items: center; justify-content: center;
+  z-index: 99;
+  gap: 16px;
+}
+.spinner-overlay.visible { display: flex; }
+.spinner {
+  width: 48px; height: 48px;
+  border: 3px solid var(--ghost);
+  border-top-color: var(--gold);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.spinner-overlay p {
+  font-size: 14px; color: var(--silver);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+@keyframes pulse { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
+
+/* ─── TOAST ─── */
+.toast {
+  position: fixed;
+  bottom: 100px;
+  left: 50%; transform: translateX(-50%) translateY(20px);
+  background: var(--green-check);
+  color: white;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  opacity: 0;
+  transition: all 0.3s;
+  z-index: 200;
+  pointer-events: none;
+  white-space: nowrap;
+}
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ─── EMPTY STATE ─── */
+.empty-state {
+  padding: 60px 24px;
+  text-align: center;
+}
+.empty-state svg {
+  width: 64px; height: 64px;
+  stroke: var(--ghost); fill: none; stroke-width: 1;
+  margin-bottom: 16px;
+}
+.empty-state h3 {
+  font-family: 'Playfair Display', serif;
+  font-size: 18px; color: var(--silver);
+  margin-bottom: 8px;
+}
+.empty-state p {
+  font-size: 13px; color: var(--ghost);
+  max-width: 220px;
+  margin: 0 auto;
+  line-height: 1.5;
+}
+
+/* Page load animation */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-in { animation: fadeUp 0.5s ease-out both; }
+.delay-1 { animation-delay: 0.1s; }
+.delay-2 { animation-delay: 0.2s; }
+.delay-3 { animation-delay: 0.3s; }
+</style>
+</head>
+<body>
+
+<!-- ════════ HOME SCREEN ════════ -->
+<div id="home-screen" class="screen active">
+  <div class="top-bar">
+    <h1>KEVIN'S VAULT</h1>
+    <button class="action-btn" onclick="showApiKeyModal()" title="Settings">⚙</button>
+  </div>
+  <div class="scroll-content" id="home-scroll">
+    <div class="home-hero animate-in">
+      <h2>My Collection</h2>
+      <p>Hall of Fame Autographs</p>
+    </div>
+    <div class="stats-row animate-in delay-1">
+      <div class="stat-box">
+        <div class="num" id="stat-total">0</div>
+        <div class="label">Cards</div>
+      </div>
+      <div class="stat-box">
+        <div class="num" id="stat-hof">0</div>
+        <div class="label">HoF</div>
+      </div>
+      <div class="stat-box">
+        <div class="num" id="stat-value">$0</div>
+        <div class="label">Value</div>
+      </div>
+    </div>
+
+    <div class="section-header animate-in delay-2">
+      <h3>Hall of Fame</h3>
+    </div>
+    <div id="hof-year-groups"></div>
+
+    <div class="section-header animate-in delay-3">
+      <h3>Future Stars</h3>
+    </div>
+    <div id="other-year-groups"></div>
+  </div>
+
+  <div class="bottom-nav">
+    <button class="nav-item active" onclick="showScreen('home-screen')">
+      <svg viewBox="0 0 24 24"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1"/></svg>
+      Collection
+    </button>
+    <button class="nav-item" onclick="showScreen('checklist-screen')">
+      <svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+      HoF List
+    </button>
+    <button class="nav-item" onclick="showScreen('scan-screen')">
+      <svg viewBox="0 0 24 24"><path d="M3 9V5a2 2 0 012-2h4M3 15v4a2 2 0 002 2h4m8-18h4a2 2 0 012 2v4m0 6v4a2 2 0 01-2 2h-4"/><rect x="7" y="7" width="10" height="10" rx="1"/></svg>
+      Scan
+    </button>
+  </div>
+</div>
+
+<!-- ════════ CARD VIEWER ════════ -->
+<div id="viewer-screen" class="screen">
+  <div class="top-bar">
+    <button class="back-btn" onclick="showScreen('home-screen')">Back</button>
+    <span class="card-counter" id="viewer-counter">1 / 1</span>
+    <button class="action-btn" onclick="editCurrentCard()" title="Edit">✎</button>
+  </div>
+  <div class="scroll-content" id="viewer-scroll" style="flex:1;">
+    <div class="viewer-container" id="viewer-container">
+      <div class="card-stage" id="card-stage">
+        <div class="card-flipper" id="card-flipper">
+          <div class="card-face front">
+            <img id="viewer-front-img" src="" alt="Card front">
+          </div>
+          <div class="card-face back">
+            <img id="viewer-back-img" src="" alt="Card back">
+          </div>
+        </div>
+      </div>
+      <div class="swipe-hint" id="swipe-hint">← swipe to browse →</div>
+    </div>
+    <div class="viewer-info" id="viewer-info">
+      <div class="player-name" id="viewer-player"></div>
+      <div class="card-details-row">
+        <span class="card-details" id="viewer-details"></span>
+        <button class="wrench-btn" onclick="editCurrentCard()" title="Edit card info">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>
+        </button>
+      </div>
+      <div class="card-value" id="viewer-value"></div>
+      <div id="viewer-badge"></div>
+    </div>
+    <div id="stats-container"></div>
+    <div style="height:20px;"></div>
+  </div>
+</div>
+
+<!-- ════════ HOF CHECKLIST ════════ -->
+<div id="checklist-screen" class="screen">
+  <div class="top-bar">
+    <h1>Hall of Fame</h1>
+    <span></span>
+  </div>
+  <div class="scroll-content">
+    <div class="checklist-search">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+      <input type="text" id="hof-search" placeholder="Search players..." oninput="filterChecklist()">
+    </div>
+    <div class="checklist-filters" id="checklist-filters">
+      <button class="filter-chip active" data-filter="all" onclick="setChecklistFilter(this)">All</button>
+      <button class="filter-chip" data-filter="owned" onclick="setChecklistFilter(this)">Owned</button>
+      <button class="filter-chip" data-filter="missing" onclick="setChecklistFilter(this)">Missing</button>
+      <button class="filter-chip" data-filter="recent" onclick="setChecklistFilter(this)">Recent HoF</button>
+    </div>
+    <div id="checklist-items"></div>
+  </div>
+  <div class="bottom-nav">
+    <button class="nav-item" onclick="showScreen('home-screen')">
+      <svg viewBox="0 0 24 24"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1"/></svg>
+      Collection
+    </button>
+    <button class="nav-item active" onclick="showScreen('checklist-screen')">
+      <svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+      HoF List
+    </button>
+    <button class="nav-item" onclick="showScreen('scan-screen')">
+      <svg viewBox="0 0 24 24"><path d="M3 9V5a2 2 0 012-2h4M3 15v4a2 2 0 002 2h4m8-18h4a2 2 0 012 2v4m0 6v4a2 2 0 01-2 2h-4"/><rect x="7" y="7" width="10" height="10" rx="1"/></svg>
+      Scan
+    </button>
+  </div>
+</div>
+
+<!-- ════════ SCAN SCREEN ════════ -->
+<div id="scan-screen" class="screen">
+  <div class="top-bar">
+    <h1>Scan Card</h1>
+    <span></span>
+  </div>
+  <div class="scroll-content">
+    <div class="scan-zone" id="scan-zone" onclick="document.getElementById('file-input').click()">
+      <svg viewBox="0 0 24 24">
+        <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/>
+        <circle cx="12" cy="13" r="4"/>
+      </svg>
+      <h3>Scan Your Card</h3>
+      <p>Photograph the front & back, just like depositing a check</p>
+    </div>
+    <input type="file" id="file-input" accept="image/*" capture="environment" multiple hidden onchange="handleFileSelect(event)">
+
+    <div class="scan-preview-row">
+      <div class="scan-preview-slot" id="front-slot" onclick="pickImage('front')">
+        <span class="slot-label">Tap to add<br><strong>FRONT</strong></span>
+        <img id="front-preview" src="" alt="" style="display:none">
+        <button class="remove-img" onclick="event.stopPropagation();removeImage('front')">×</button>
+      </div>
+      <div class="scan-preview-slot" id="back-slot" onclick="pickImage('back')">
+        <span class="slot-label">Tap to add<br><strong>BACK</strong></span>
+        <img id="back-preview" src="" alt="" style="display:none">
+        <button class="remove-img" onclick="event.stopPropagation();removeImage('back')">×</button>
+      </div>
+    </div>
+
+    <button class="analyze-btn" id="analyze-btn" disabled onclick="analyzeCard()">
+      Analyze Card
+    </button>
+
+    <div class="analysis-result" id="analysis-result">
+      <div class="result-header">
+        <svg viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <span>Card Identified</span>
+      </div>
+      <div class="verify-banner">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        Please review all fields below and correct any errors before saving.
+      </div>
+      <div class="result-field">
+        <label>Player Name</label>
+        <input type="text" id="res-player" placeholder="—">
+      </div>
+      <div class="result-field">
+        <label>Card Set / Brand</label>
+        <input type="text" id="res-set" placeholder="—">
+      </div>
+      <div class="result-field">
+        <label>Year</label>
+        <input type="number" id="res-year" placeholder="—">
+      </div>
+      <div class="result-field">
+        <label>Card Number</label>
+        <input type="text" id="res-number" placeholder="—">
+      </div>
+      <div class="result-field">
+        <label>Subset / Insert</label>
+        <input type="text" id="res-subset" placeholder="—">
+      </div>
+      <div class="result-field">
+        <label>Numbered (/xx)</label>
+        <input type="text" id="res-serial" placeholder="e.g. /49">
+      </div>
+      <div class="result-field">
+        <label>Autograph</label>
+        <select id="res-auto">
+          <option value="yes">Yes</option>
+          <option value="no">No</option>
+        </select>
+      </div>
+      <div class="result-field">
+        <label>Hall of Fame</label>
+        <select id="res-hof">
+          <option value="yes">Yes — Inducted</option>
+          <option value="no">Not Yet</option>
+        </select>
+      </div>
+      <div class="result-field">
+        <label>Estimated Value</label>
+        <input type="text" id="res-value" placeholder="$0.00">
+      </div>
+      <div class="result-actions">
+        <button class="btn-cancel" onclick="resetScan()">Discard</button>
+        <button class="btn-save" onclick="saveCard()">Confirm & Save</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-nav">
+    <button class="nav-item" onclick="showScreen('home-screen')">
+      <svg viewBox="0 0 24 24"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1"/></svg>
+      Collection
+    </button>
+    <button class="nav-item" onclick="showScreen('checklist-screen')">
+      <svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+      HoF List
+    </button>
+    <button class="nav-item active" onclick="showScreen('scan-screen')">
+      <svg viewBox="0 0 24 24"><path d="M3 9V5a2 2 0 012-2h4M3 15v4a2 2 0 002 2h4m8-18h4a2 2 0 012 2v4m0 6v4a2 2 0 01-2 2h-4"/><rect x="7" y="7" width="10" height="10" rx="1"/></svg>
+      Scan
+    </button>
+  </div>
+</div>
+
+<!-- ════════ EDIT CARD SCREEN ════════ -->
+<div id="edit-screen" class="screen">
+  <div class="top-bar">
+    <button class="back-btn" onclick="showScreen('viewer-screen')">Cancel</button>
+    <h1>Edit Card</h1>
+    <button class="action-btn" onclick="saveEditedCard()" style="font-size:15px;color:var(--gold);">Save</button>
+  </div>
+  <div class="scroll-content" style="padding:16px;">
+    <div class="analysis-result visible" id="edit-form" style="margin:0;">
+      <div class="result-field">
+        <label>Player Name</label>
+        <input type="text" id="edit-player">
+      </div>
+      <div class="result-field">
+        <label>Card Set / Brand</label>
+        <input type="text" id="edit-set">
+      </div>
+      <div class="result-field">
+        <label>Year</label>
+        <input type="number" id="edit-year">
+      </div>
+      <div class="result-field">
+        <label>Card Number</label>
+        <input type="text" id="edit-number">
+      </div>
+      <div class="result-field">
+        <label>Subset / Insert</label>
+        <input type="text" id="edit-subset">
+      </div>
+      <div class="result-field">
+        <label>Numbered (/xx)</label>
+        <input type="text" id="edit-serial">
+      </div>
+      <div class="result-field">
+        <label>Autograph</label>
+        <select id="edit-auto"><option value="yes">Yes</option><option value="no">No</option></select>
+      </div>
+      <div class="result-field">
+        <label>Hall of Fame</label>
+        <select id="edit-hof"><option value="yes">Yes — Inducted</option><option value="no">Not Yet</option></select>
+      </div>
+      <div class="result-field">
+        <label>Estimated Value</label>
+        <input type="text" id="edit-value">
+      </div>
+      <div class="result-actions">
+        <button class="btn-cancel" onclick="deleteCurrentCard()" style="color:var(--red-accent);border-color:var(--red-accent);">Delete Card</button>
+        <button class="btn-save" onclick="saveEditedCard()">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ MODALS ════════ -->
+<div class="modal-overlay" id="api-modal">
+  <div class="modal">
+    <h3>Anthropic API Key</h3>
+    <p>Enter your Claude API key to enable card analysis. Your key is stored locally and never sent anywhere else.</p>
+    <input type="password" id="api-key-input" placeholder="sk-ant-api03-...">
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeApiModal()">Cancel</button>
+      <button class="btn-save" onclick="saveApiKey()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="spinner-overlay" id="spinner">
+  <div class="spinner"></div>
+  <p>Analyzing your card...</p>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── DATA STORE ───
+const STORAGE_KEY = 'vault_cards';
+const API_KEY_KEY = 'vault_api_key';
+
+function loadCards() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+  catch { return []; }
+}
+function saveCards(cards) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(cards));
+}
+function getApiKey() { return localStorage.getItem(API_KEY_KEY) || ''; }
+function setApiKey(k) { localStorage.setItem(API_KEY_KEY, k); }
+
+// ─── HOF MASTER LIST ───
+const HOF_PLAYERS = [
+  { name: "Hank Aaron", inducted: 1982, position: "OF" },
+  { name: "Roberto Alomar", inducted: 2011, position: "2B" },
+  { name: "Luis Aparicio", inducted: 1984, position: "SS" },
+  { name: "Jeff Bagwell", inducted: 2017, position: "1B" },
+  { name: "Ernie Banks", inducted: 1977, position: "SS" },
+  { name: "Johnny Bench", inducted: 1989, position: "C" },
+  { name: "Craig Biggio", inducted: 2015, position: "2B" },
+  { name: "Wade Boggs", inducted: 2005, position: "3B" },
+  { name: "George Brett", inducted: 1999, position: "3B" },
+  { name: "Lou Brock", inducted: 1985, position: "OF" },
+  { name: "Jim Bunning", inducted: 1996, position: "P" },
+  { name: "Rod Carew", inducted: 1991, position: "1B" },
+  { name: "Steve Carlton", inducted: 1994, position: "P" },
+  { name: "Gary Carter", inducted: 2003, position: "C" },
+  { name: "Roberto Clemente", inducted: 1973, position: "OF" },
+  { name: "Ty Cobb", inducted: 1936, position: "OF" },
+  { name: "Andre Dawson", inducted: 2010, position: "OF" },
+  { name: "Joe DiMaggio", inducted: 1955, position: "OF" },
+  { name: "Dennis Eckersley", inducted: 2004, position: "P" },
+  { name: "Bob Feller", inducted: 1962, position: "P" },
+  { name: "Rollie Fingers", inducted: 1992, position: "P" },
+  { name: "Carlton Fisk", inducted: 2000, position: "C" },
+  { name: "Whitey Ford", inducted: 1974, position: "P" },
+  { name: "Jimmie Foxx", inducted: 1951, position: "1B" },
+  { name: "Lou Gehrig", inducted: 1939, position: "1B" },
+  { name: "Bob Gibson", inducted: 1981, position: "P" },
+  { name: "Tom Glavine", inducted: 2014, position: "P" },
+  { name: "Ken Griffey Jr.", inducted: 2016, position: "OF" },
+  { name: "Tony Gwynn", inducted: 2007, position: "OF" },
+  { name: "Rickey Henderson", inducted: 2009, position: "OF" },
+  { name: "Trevor Hoffman", inducted: 2018, position: "P" },
+  { name: "Rogers Hornsby", inducted: 1942, position: "2B" },
+  { name: "Reggie Jackson", inducted: 1993, position: "OF" },
+  { name: "Derek Jeter", inducted: 2020, position: "SS" },
+  { name: "Randy Johnson", inducted: 2015, position: "P" },
+  { name: "Walter Johnson", inducted: 1936, position: "P" },
+  { name: "Chipper Jones", inducted: 2018, position: "3B" },
+  { name: "Andruw Jones", inducted: 2025, position: "OF" },
+  { name: "Al Kaline", inducted: 1980, position: "OF" },
+  { name: "Harmon Killebrew", inducted: 1984, position: "1B" },
+  { name: "Sandy Koufax", inducted: 1972, position: "P" },
+  { name: "Barry Larkin", inducted: 2012, position: "SS" },
+  { name: "Greg Maddux", inducted: 2014, position: "P" },
+  { name: "Mickey Mantle", inducted: 1974, position: "OF" },
+  { name: "Pedro Martinez", inducted: 2015, position: "P" },
+  { name: "Willie Mays", inducted: 1979, position: "OF" },
+  { name: "Paul Molitor", inducted: 2004, position: "DH" },
+  { name: "Joe Morgan", inducted: 1990, position: "2B" },
+  { name: "Eddie Murray", inducted: 2003, position: "1B" },
+  { name: "Stan Musial", inducted: 1969, position: "OF" },
+  { name: "Phil Niekro", inducted: 1997, position: "P" },
+  { name: "Jim Palmer", inducted: 1990, position: "P" },
+  { name: "Tony Perez", inducted: 2000, position: "1B" },
+  { name: "Mike Piazza", inducted: 2016, position: "C" },
+  { name: "Kirby Puckett", inducted: 2001, position: "OF" },
+  { name: "Mariano Rivera", inducted: 2019, position: "P" },
+  { name: "Brooks Robinson", inducted: 1983, position: "3B" },
+  { name: "Cal Ripken Jr.", inducted: 2007, position: "SS" },
+  { name: "Frank Robinson", inducted: 1982, position: "OF" },
+  { name: "Jackie Robinson", inducted: 1962, position: "2B" },
+  { name: "Ivan Rodriguez", inducted: 2017, position: "C" },
+  { name: "Pete Rose", inducted: 0, position: "OF" }, /* controversial */
+  { name: "Babe Ruth", inducted: 1936, position: "OF/P" },
+  { name: "Nolan Ryan", inducted: 1999, position: "P" },
+  { name: "Ryne Sandberg", inducted: 2005, position: "2B" },
+  { name: "Mike Schmidt", inducted: 1995, position: "3B" },
+  { name: "Tom Seaver", inducted: 1992, position: "P" },
+  { name: "Ozzie Smith", inducted: 2002, position: "SS" },
+  { name: "John Smoltz", inducted: 2015, position: "P" },
+  { name: "Duke Snider", inducted: 1980, position: "OF" },
+  { name: "Warren Spahn", inducted: 1973, position: "P" },
+  { name: "Willie Stargell", inducted: 1988, position: "OF" },
+  { name: "Don Sutton", inducted: 1998, position: "P" },
+  { name: "Frank Thomas", inducted: 2014, position: "1B" },
+  { name: "Jim Thome", inducted: 2018, position: "1B" },
+  { name: "Alan Trammell", inducted: 2018, position: "SS" },
+  { name: "Larry Walker", inducted: 2020, position: "OF" },
+  { name: "Honus Wagner", inducted: 1936, position: "SS" },
+  { name: "Ted Williams", inducted: 1966, position: "OF" },
+  { name: "Dave Winfield", inducted: 2001, position: "OF" },
+  { name: "Robin Yount", inducted: 1999, position: "OF" },
+  { name: "Carl Yastrzemski", inducted: 1989, position: "OF" },
+  { name: "CC Sabathia", inducted: 2025, position: "P" },
+  { name: "Ichiro Suzuki", inducted: 2025, position: "OF" },
+  { name: "Billy Wagner", inducted: 2025, position: "P" },
+  { name: "David Ortiz", inducted: 2022, position: "DH" },
+  { name: "Scott Rolen", inducted: 2023, position: "3B" },
+  { name: "Fred McGriff", inducted: 2023, position: "1B" },
+  { name: "Adrian Beltre", inducted: 2024, position: "3B" },
+  { name: "Todd Helton", inducted: 2024, position: "1B" },
+  { name: "Joe Mauer", inducted: 2024, position: "C" },
+].filter(p => p.inducted > 0).sort((a,b) => a.name.localeCompare(b.name));
+
+// ─── STATE ───
+let cards = loadCards();
+let viewerCards = [];
+let viewerIndex = 0;
+let currentFilter = 'all';
+let pendingFrontData = null;
+let pendingBackData = null;
+let editingCardId = null;
+
+// ─── SEED EXAMPLE CARD IF EMPTY ───
+if (cards.length === 0) {
+  cards.push({
+    id: Date.now().toString(),
+    player: "Andruw Jones",
+    set: "Topps Museum Collection",
+    year: 2025,
+    number: "RS-AJ",
+    subset: "Retrospective Signatures",
+    serial: "/149",
+    autograph: "yes",
+    hof: "yes",
+    value: "$80",
+    frontImg: "cards/andruw-jones-front.jpeg",
+    backImg: "cards/andruw-jones-back.jpeg",
+    addedDate: new Date().toISOString()
+  });
+  saveCards(cards);
+}
+
+// ─── NAVIGATION ───
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  // Update nav
+  document.querySelectorAll('.bottom-nav').forEach(nav => {
+    nav.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+  });
+  const activeNav = document.querySelector(`#${id} .bottom-nav`);
+  if (activeNav) {
+    const navMap = { 'home-screen': 0, 'checklist-screen': 1, 'scan-screen': 2 };
+    const idx = navMap[id];
+    if (idx !== undefined) activeNav.children[idx].classList.add('active');
+  }
+  if (id === 'home-screen') renderHome();
+  if (id === 'checklist-screen') renderChecklist();
+}
+
+// ─── RENDER HOME ───
+function renderHome() {
+  cards = loadCards();
+  const hofCards = cards.filter(c => c.hof === 'yes');
+  const otherCards = cards.filter(c => c.hof !== 'yes');
+
+  document.getElementById('stat-total').textContent = cards.length;
+  document.getElementById('stat-hof').textContent = hofCards.length;
+  const totalVal = cards.reduce((sum, c) => {
+    const v = parseFloat((c.value || '').replace(/[^0-9.]/g, ''));
+    return sum + (isNaN(v) ? 0 : v);
+  }, 0);
+  document.getElementById('stat-value').textContent = '$' + totalVal.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+
+  renderYearGroups('hof-year-groups', hofCards, true);
+  renderYearGroups('other-year-groups', otherCards, false);
+}
+
+function renderYearGroups(containerId, cardList, isHof) {
+  const container = document.getElementById(containerId);
+  if (cardList.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="18" rx="2"/><path d="M8 7h8M8 11h5"/></svg>
+        <h3>${isHof ? 'No HoF Cards Yet' : 'No Cards Yet'}</h3>
+        <p>Scan a card to start building your collection</p>
+      </div>`;
+    return;
+  }
+
+  const byYear = {};
+  cardList.forEach(c => {
+    const y = c.year || 'Unknown';
+    if (!byYear[y]) byYear[y] = [];
+    byYear[y].push(c);
+  });
+
+  const years = Object.keys(byYear).sort((a,b) => b - a);
+  container.innerHTML = years.map(year => `
+    <div class="year-group open" data-year="${year}">
+      <div class="year-group-header" onclick="this.parentElement.classList.toggle('open')">
+        <span class="year">${year}</span>
+        <span class="count">${byYear[year].length} card${byYear[year].length !== 1 ? 's' : ''}</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="year-group-cards">
+        ${byYear[year].map(card => `
+          <div class="card-thumb ${card.hof === 'yes' ? 'hof' : ''}" onclick="openViewer('${card.id}')">
+            <img src="${card.frontImg}" alt="${card.player}" loading="lazy"
+              onerror="this.style.display='none'">
+            <div class="thumb-label">${card.player}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+// ─── CARD VIEWER ───
+function openViewer(cardId) {
+  cards = loadCards();
+  viewerCards = cards;
+  viewerIndex = cards.findIndex(c => c.id === cardId);
+  if (viewerIndex < 0) viewerIndex = 0;
+  renderViewerCard();
+  showScreen('viewer-screen');
+  // Hide swipe hint after a moment
+  setTimeout(() => {
+    const hint = document.getElementById('swipe-hint');
+    if (hint) hint.style.opacity = '0';
+  }, 3000);
+}
+
+function renderViewerCard() {
+  const card = viewerCards[viewerIndex];
+  if (!card) return;
+  const flipper = document.getElementById('card-flipper');
+  flipper.classList.remove('flipped');
+
+  document.getElementById('viewer-front-img').src = card.frontImg || '';
+  document.getElementById('viewer-back-img').src = card.backImg || '';
+  document.getElementById('viewer-player').textContent = card.player;
+  document.getElementById('viewer-details').textContent =
+    `${card.year} ${card.set}${card.subset ? ' · ' + card.subset : ''}${card.serial ? ' ' + card.serial : ''}`;
+  document.getElementById('viewer-value').textContent = card.value || '';
+  document.getElementById('viewer-badge').innerHTML =
+    card.hof === 'yes' ? '<span class="hof-badge">★ Hall of Fame</span>' : '';
+  document.getElementById('viewer-counter').textContent =
+    `${viewerIndex + 1} / ${viewerCards.length}`;
+
+  // Fetch and display career stats
+  loadPlayerStats(card.player);
+}
+
+// ─── MLB STATS API ───
+const statsCache = {};
+
+async function loadPlayerStats(playerName) {
+  const container = document.getElementById('stats-container');
+  if (!playerName) { container.innerHTML = ''; return; }
+
+  // Check cache
+  if (statsCache[playerName]) {
+    renderStats(statsCache[playerName]);
+    return;
+  }
+
+  container.innerHTML = '<div class="stats-loading"><span class="mini-spinner"></span>Loading career stats...</div>';
+
+  try {
+    // Step 1: Search for player by name
+    const searchResp = await fetch(
+      `https://statsapi.mlb.com/api/v1/people/search?names=${encodeURIComponent(playerName)}`
+    );
+    const searchData = await searchResp.json();
+
+    if (!searchData.people || searchData.people.length === 0) {
+      container.innerHTML = '';
+      return;
+    }
+
+    // Find best match (prefer exact name match)
+    let match = searchData.people.find(p =>
+      p.fullName.toLowerCase() === playerName.toLowerCase()
+    ) || searchData.people[0];
+
+    // Step 2: Fetch full stats using the player ID
+    const statsResp = await fetch(
+      `https://statsapi.mlb.com/api/v1/people/${match.id}?hydrate=stats(group=%5Bhitting,pitching%5D,type=%5Bcareer%5D)`
+    );
+    const statsData = await statsResp.json();
+    let player = statsData.people?.[0] || match;
+
+    statsCache[playerName] = player;
+    renderStats(player);
+  } catch (err) {
+    console.error('Stats fetch error:', err);
+    container.innerHTML = '';
+  }
+}
+
+function renderStats(player) {
+  const container = document.getElementById('stats-container');
+  if (!player) { container.innerHTML = ''; return; }
+
+  const hitting = player.stats?.find(s => s.group?.displayName === 'hitting' && s.type?.displayName === 'career');
+  const pitching = player.stats?.find(s => s.group?.displayName === 'pitching' && s.type?.displayName === 'career');
+
+  const hStats = hitting?.splits?.[0]?.stat;
+  const pStats = pitching?.splits?.[0]?.stat;
+
+  // Determine if primarily a pitcher or position player
+  const isPitcher = player.primaryPosition?.abbreviation === 'P' ||
+    player.primaryPosition?.code === '1' ||
+    (pStats && !hStats) ||
+    (pStats && hStats && parseInt(pStats.gamesPlayed || 0) > parseInt(hStats.gamesPlayed || 0) * 0.6 &&
+     parseInt(pStats.inningsPitched || 0) > 200);
+
+  // Bio info
+  const pos = player.primaryPosition?.abbreviation || '';
+  const bats = player.batSide?.code || '';
+  const throws = player.pitchHand?.code || '';
+  const debut = player.mlbDebutDate ? player.mlbDebutDate.substring(0, 4) : '';
+  const lastPlayed = player.lastPlayedDate ? player.lastPlayedDate.substring(0, 4) : '';
+  const yearsActive = debut && lastPlayed ? `${debut}–${lastPlayed}` : debut ? `${debut}–` : '';
+  const birthCity = player.birthCity || '';
+  const birthCountry = player.birthCountry || '';
+  const birthPlace = [birthCity, birthCountry].filter(Boolean).join(', ');
+  const height = player.height || '';
+  const weight = player.weight ? `${player.weight} lbs` : '';
+
+  let statsHTML = '';
+
+  if (isPitcher && pStats) {
+    statsHTML = `
+      <div class="stats-panel">
+        <div class="stats-panel-header">
+          <h4>Career Pitching</h4>
+          <span class="stats-years">${yearsActive}</span>
+          <span class="stats-pos">${pos}</span>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-cell"><div class="stat-label">W-L</div><div class="stat-val">${pStats.wins || 0}-${pStats.losses || 0}</div></div>
+          <div class="stat-cell"><div class="stat-label">ERA</div><div class="stat-val highlight">${pStats.era || '—'}</div></div>
+          <div class="stat-cell"><div class="stat-label">G</div><div class="stat-val">${pStats.gamesPlayed || 0}</div></div>
+          <div class="stat-cell"><div class="stat-label">GS</div><div class="stat-val">${pStats.gamesStarted || 0}</div></div>
+          <div class="stat-cell"><div class="stat-label">IP</div><div class="stat-val">${pStats.inningsPitched || '—'}</div></div>
+          <div class="stat-cell"><div class="stat-label">SO</div><div class="stat-val highlight">${formatNum(pStats.strikeOuts)}</div></div>
+          <div class="stat-cell"><div class="stat-label">WHIP</div><div class="stat-val">${pStats.whip || '—'}</div></div>
+          <div class="stat-cell"><div class="stat-label">SV</div><div class="stat-val">${pStats.saves || 0}</div></div>
+          <div class="stat-cell"><div class="stat-label">CG</div><div class="stat-val">${pStats.completeGames || 0}</div></div>
+          <div class="stat-cell"><div class="stat-label">SHO</div><div class="stat-val">${pStats.shutouts || 0}</div></div>
+          <div class="stat-cell"><div class="stat-label">BB</div><div class="stat-val">${formatNum(pStats.baseOnBalls)}</div></div>
+          <div class="stat-cell"><div class="stat-label">K/9</div><div class="stat-val">${pStats.strikeoutsPer9Inn || '—'}</div></div>
+        </div>
+        ${buildBio(height, weight, bats, throws, birthPlace)}
+      </div>`;
+  }
+
+  if (!isPitcher && hStats) {
+    statsHTML = `
+      <div class="stats-panel">
+        <div class="stats-panel-header">
+          <h4>Career Hitting</h4>
+          <span class="stats-years">${yearsActive}</span>
+          <span class="stats-pos">${pos}</span>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-cell"><div class="stat-label">AVG</div><div class="stat-val highlight">${hStats.avg || '—'}</div></div>
+          <div class="stat-cell"><div class="stat-label">HR</div><div class="stat-val highlight">${formatNum(hStats.homeRuns)}</div></div>
+          <div class="stat-cell"><div class="stat-label">RBI</div><div class="stat-val">${formatNum(hStats.rbi)}</div></div>
+          <div class="stat-cell"><div class="stat-label">H</div><div class="stat-val">${formatNum(hStats.hits)}</div></div>
+          <div class="stat-cell"><div class="stat-label">G</div><div class="stat-val">${formatNum(hStats.gamesPlayed)}</div></div>
+          <div class="stat-cell"><div class="stat-label">AB</div><div class="stat-val">${formatNum(hStats.atBats)}</div></div>
+          <div class="stat-cell"><div class="stat-label">OBP</div><div class="stat-val">${hStats.obp || '—'}</div></div>
+          <div class="stat-cell"><div class="stat-label">SLG</div><div class="stat-val">${hStats.slg || '—'}</div></div>
+          <div class="stat-cell"><div class="stat-label">OPS</div><div class="stat-val highlight">${hStats.ops || '—'}</div></div>
+          <div class="stat-cell"><div class="stat-label">R</div><div class="stat-val">${formatNum(hStats.runs)}</div></div>
+          <div class="stat-cell"><div class="stat-label">SB</div><div class="stat-val">${hStats.stolenBases || 0}</div></div>
+          <div class="stat-cell"><div class="stat-label">BB</div><div class="stat-val">${formatNum(hStats.baseOnBalls)}</div></div>
+          <div class="stat-cell"><div class="stat-label">2B</div><div class="stat-val">${hStats.doubles || 0}</div></div>
+          <div class="stat-cell"><div class="stat-label">3B</div><div class="stat-val">${hStats.triples || 0}</div></div>
+          <div class="stat-cell"><div class="stat-label">SO</div><div class="stat-val">${formatNum(hStats.strikeOuts)}</div></div>
+          <div class="stat-cell"><div class="stat-label">TB</div><div class="stat-val">${formatNum(hStats.totalBases)}</div></div>
+        </div>
+        ${buildBio(height, weight, bats, throws, birthPlace)}
+      </div>`;
+  }
+
+  // If player has both (e.g. Ohtani, Babe Ruth) show both
+  if (isPitcher && hStats && parseInt(hStats.atBats || 0) > 100) {
+    statsHTML += `
+      <div class="stats-panel" style="margin-top:12px">
+        <div class="stats-panel-header">
+          <h4>Career Hitting</h4>
+          <span class="stats-pos">${pos}</span>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-cell"><div class="stat-label">AVG</div><div class="stat-val highlight">${hStats.avg || '—'}</div></div>
+          <div class="stat-cell"><div class="stat-label">HR</div><div class="stat-val highlight">${formatNum(hStats.homeRuns)}</div></div>
+          <div class="stat-cell"><div class="stat-label">RBI</div><div class="stat-val">${formatNum(hStats.rbi)}</div></div>
+          <div class="stat-cell"><div class="stat-label">H</div><div class="stat-val">${formatNum(hStats.hits)}</div></div>
+          <div class="stat-cell"><div class="stat-label">G</div><div class="stat-val">${formatNum(hStats.gamesPlayed)}</div></div>
+          <div class="stat-cell"><div class="stat-label">OPS</div><div class="stat-val highlight">${hStats.ops || '—'}</div></div>
+          <div class="stat-cell"><div class="stat-label">SB</div><div class="stat-val">${hStats.stolenBases || 0}</div></div>
+          <div class="stat-cell"><div class="stat-label">BB</div><div class="stat-val">${formatNum(hStats.baseOnBalls)}</div></div>
+        </div>
+      </div>`;
+  }
+
+  container.innerHTML = statsHTML;
+}
+
+function formatNum(n) {
+  if (n === undefined || n === null) return '—';
+  const num = parseInt(n);
+  return isNaN(num) ? '—' : num.toLocaleString();
+}
+
+function buildBio(height, weight, bats, throws, birthPlace) {
+  const parts = [];
+  if (height) parts.push(`<span><strong>Ht:</strong> ${height}</span>`);
+  if (weight) parts.push(`<span><strong>Wt:</strong> ${weight}</span>`);
+  if (bats) parts.push(`<span><strong>B/T:</strong> ${bats}/${throws}</span>`);
+  if (birthPlace) parts.push(`<span><strong>From:</strong> ${birthPlace}</span>`);
+  if (parts.length === 0) return '';
+  return `<div class="stats-bio">${parts.join('')}</div>`;
+}
+
+// Tap to flip
+document.getElementById('card-flipper').addEventListener('click', function(e) {
+  if (!isDragging) this.classList.toggle('flipped');
+});
+
+// Swipe handling
+let touchStartX = 0, touchDeltaX = 0, isDragging = false;
+const viewerContainer = document.getElementById('viewer-container');
+
+viewerContainer.addEventListener('touchstart', e => {
+  touchStartX = e.touches[0].clientX;
+  isDragging = false;
+}, { passive: true });
+
+viewerContainer.addEventListener('touchmove', e => {
+  touchDeltaX = e.touches[0].clientX - touchStartX;
+  if (Math.abs(touchDeltaX) > 15) isDragging = true;
+}, { passive: true });
+
+viewerContainer.addEventListener('touchend', e => {
+  if (Math.abs(touchDeltaX) > 60) {
+    const stage = document.getElementById('card-stage');
+    if (touchDeltaX < 0 && viewerIndex < viewerCards.length - 1) {
+      // Swipe left → next
+      stage.className = 'card-stage swipe-left';
+      setTimeout(() => {
+        viewerIndex++;
+        renderViewerCard();
+        stage.className = 'card-stage enter-from-right';
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => { stage.className = 'card-stage enter-settle'; });
+        });
+      }, 280);
+    } else if (touchDeltaX > 0 && viewerIndex > 0) {
+      // Swipe right → prev
+      stage.className = 'card-stage swipe-right';
+      setTimeout(() => {
+        viewerIndex--;
+        renderViewerCard();
+        stage.className = 'card-stage enter-from-left';
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => { stage.className = 'card-stage enter-settle'; });
+        });
+      }, 280);
+    }
+  }
+  touchDeltaX = 0;
+  setTimeout(() => isDragging = false, 50);
+});
+
+// Keyboard navigation for desktop
+document.addEventListener('keydown', e => {
+  if (!document.getElementById('viewer-screen').classList.contains('active')) return;
+  if (e.key === 'ArrowLeft' && viewerIndex > 0) {
+    viewerIndex--; renderViewerCard();
+  } else if (e.key === 'ArrowRight' && viewerIndex < viewerCards.length - 1) {
+    viewerIndex++; renderViewerCard();
+  }
+});
+
+// ─── HOF CHECKLIST ───
+function renderChecklist() {
+  cards = loadCards();
+  const ownedNames = new Set(cards.filter(c => c.hof === 'yes').map(c => c.player.toLowerCase()));
+  const search = (document.getElementById('hof-search').value || '').toLowerCase();
+
+  let list = HOF_PLAYERS.filter(p => {
+    if (search && !p.name.toLowerCase().includes(search)) return false;
+    if (currentFilter === 'owned') return ownedNames.has(p.name.toLowerCase());
+    if (currentFilter === 'missing') return !ownedNames.has(p.name.toLowerCase());
+    if (currentFilter === 'recent') return p.inducted >= 2020;
+    return true;
+  });
+
+  const container = document.getElementById('checklist-items');
+  if (list.length === 0) {
+    container.innerHTML = '<div class="empty-state"><h3>No matches</h3></div>';
+    return;
+  }
+
+  container.innerHTML = list.map(p => {
+    const owned = ownedNames.has(p.name.toLowerCase());
+    return `<div class="checklist-item ${owned ? 'owned' : ''}" onclick="${owned ? `openPlayerCards('${p.name.replace(/'/g,"\\'")}')` : ''}">
+      <div class="check-circle">${owned ? '✓' : ''}</div>
+      <div class="player-info">
+        <div class="name">${p.name}</div>
+        <div class="meta">${p.position}</div>
+      </div>
+      <div class="inducted">${p.inducted}</div>
+    </div>`;
+  }).join('');
+}
+
+function openPlayerCards(name) {
+  cards = loadCards();
+  const playerCards = cards.filter(c => c.player.toLowerCase() === name.toLowerCase());
+  if (playerCards.length > 0) openViewer(playerCards[0].id);
+}
+
+function filterChecklist() { renderChecklist(); }
+function setChecklistFilter(el) {
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  currentFilter = el.dataset.filter;
+  renderChecklist();
+}
+
+// ─── SCAN / UPLOAD ───
+let currentSlot = null;
+
+function pickImage(slot) {
+  currentSlot = slot;
+  const input = document.getElementById('file-input');
+  input.removeAttribute('multiple');
+  input.click();
+}
+
+function handleFileSelect(e) {
+  const files = Array.from(e.target.files);
+  if (!files.length) return;
+
+  if (currentSlot) {
+    loadImageFile(files[0], currentSlot);
+    currentSlot = null;
+  } else {
+    // From main scan zone — auto assign
+    if (files[0] && !pendingFrontData) loadImageFile(files[0], 'front');
+    else if (files[0] && !pendingBackData) loadImageFile(files[0], 'back');
+    if (files[1] && !pendingBackData) loadImageFile(files[1], 'back');
+    else if (files[1] && !pendingFrontData) loadImageFile(files[1], 'front');
+  }
+  e.target.value = '';
+}
+
+function autoCropCardImage(dataUrl) {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = function() {
+      let canvas = document.createElement('canvas');
+      let ctx = canvas.getContext('2d');
+
+      const maxDim = 1200;
+      let w = img.width, h = img.height;
+      if (w > maxDim || h > maxDim) {
+        const scale = maxDim / Math.max(w, h);
+        w = Math.round(w * scale); h = Math.round(h * scale);
+      }
+      canvas.width = w; canvas.height = h;
+      ctx.drawImage(img, 0, 0, w, h);
+
+      // ── Step 1: Detect skew angle and straighten ──
+      let pixels = ctx.getImageData(0, 0, w, h).data;
+      let gray = new Float32Array(w * h);
+      for (let i = 0; i < w * h; i++) gray[i] = (pixels[i*4] + pixels[i*4+1] + pixels[i*4+2]) / 3;
+
+      // Compute gradient direction at strong edge pixels
+      const gx = new Float32Array(w * h);
+      const gy = new Float32Array(w * h);
+      for (let r = 1; r < h - 1; r++) {
+        for (let c = 1; c < w - 1; c++) {
+          gx[r*w+c] = gray[r*w+c+1] - gray[r*w+c-1];
+          gy[r*w+c] = gray[(r+1)*w+c] - gray[(r-1)*w+c];
+        }
+      }
+      const mag = new Float32Array(w * h);
+      for (let i = 0; i < w * h; i++) mag[i] = Math.sqrt(gx[i]*gx[i] + gy[i]*gy[i]);
+
+      // Get top 5% strongest edges
+      const sorted = Array.from(mag).sort((a, b) => b - a);
+      const magThresh = sorted[Math.floor(w * h * 0.05)] || 1;
+
+      // Collect angle deviations from cardinal directions
+      const devs = [];
+      for (let i = 0; i < w * h; i++) {
+        if (mag[i] < magThresh) continue;
+        let a = Math.atan2(gy[i], gx[i]) * 180 / Math.PI;
+        a = ((a % 180) + 180) % 180; // 0-180
+        const devH = Math.min(a, 180 - a);
+        const devV = Math.abs(a - 90);
+        const dev = Math.min(devH, devV);
+        if (dev < 10) {
+          devs.push(devH < devV ? (a < 90 ? a : a - 180) : (a - 90));
+        }
+      }
+
+      let skewAngle = 0;
+      if (devs.length > 100) {
+        devs.sort((a, b) => a - b);
+        skewAngle = devs[Math.floor(devs.length / 2)]; // median
+      }
+
+      // Apply straightening if skew > 0.3°
+      if (Math.abs(skewAngle) > 0.3 && Math.abs(skewAngle) < 15) {
+        const rad = skewAngle * Math.PI / 180;
+        const cos = Math.abs(Math.cos(rad)), sin = Math.abs(Math.sin(rad));
+        const nw = Math.round(w * cos + h * sin);
+        const nh = Math.round(w * sin + h * cos);
+        const c2 = document.createElement('canvas');
+        c2.width = nw; c2.height = nh;
+        const ctx2 = c2.getContext('2d');
+        ctx2.translate(nw / 2, nh / 2);
+        ctx2.rotate(rad);
+        ctx2.drawImage(canvas, -w / 2, -h / 2);
+        canvas = c2; ctx = ctx2; w = nw; h = nh;
+
+        // Recompute grayscale
+        pixels = canvas.getContext('2d').getImageData(0, 0, w, h).data;
+        gray = new Float32Array(w * h);
+        for (let i = 0; i < w * h; i++) gray[i] = (pixels[i*4] + pixels[i*4+1] + pixels[i*4+2]) / 3;
+      }
+
+      // ── Step 2: Gradient-based edge crop ──
+      const rowGrad = new Float32Array(h);
+      for (let r = 1; r < h - 1; r++) {
+        let sum = 0;
+        for (let c = 0; c < w; c++) sum += Math.abs(gray[(r+1)*w+c] - gray[(r-1)*w+c]);
+        rowGrad[r] = sum;
+      }
+      const colGrad = new Float32Array(w);
+      for (let c = 1; c < w - 1; c++) {
+        let sum = 0;
+        for (let r = 0; r < h; r++) sum += Math.abs(gray[r*w+c+1] - gray[r*w+c-1]);
+        colGrad[c] = sum;
+      }
+
+      let rMax = 0, cMax = 0;
+      for (let r = 0; r < h; r++) if (rowGrad[r] > rMax) rMax = rowGrad[r];
+      for (let c = 0; c < w; c++) if (colGrad[c] > cMax) cMax = colGrad[c];
+      if (rMax > 0) for (let r = 0; r < h; r++) rowGrad[r] /= rMax;
+      if (cMax > 0) for (let c = 0; c < w; c++) colGrad[c] /= cMax;
+
+      const gt = 0.25;
+      let top = 0, bottom = h - 1, left = 0, right = w - 1;
+      for (let r = 0; r < h / 3; r++) { if (rowGrad[r] > gt) { top = r; break; } }
+      for (let r = h - 1; r > h * 2 / 3; r--) { if (rowGrad[r] > gt) { bottom = r; break; } }
+      for (let c = 0; c < w / 3; c++) { if (colGrad[c] > gt) { left = c; break; } }
+      for (let c = w - 1; c > w * 2 / 3; c--) { if (colGrad[c] > gt) { right = c; break; } }
+
+      const pad = Math.round(Math.max(w, h) * 0.008);
+      top = Math.max(0, top - pad); left = Math.max(0, left - pad);
+      bottom = Math.min(h - 1, bottom + pad); right = Math.min(w - 1, right + pad);
+
+      const cw = right - left + 1, ch = bottom - top + 1;
+      if (cw < 50 || ch < 50) { resolve(dataUrl); return; }
+
+      // ── Step 3: Orientation + output ──
+      const outCanvas = document.createElement('canvas');
+      const outCtx = outCanvas.getContext('2d');
+      if (cw > ch * 1.15) {
+        outCanvas.width = ch; outCanvas.height = cw;
+        outCtx.translate(ch, 0); outCtx.rotate(Math.PI / 2);
+        outCtx.drawImage(canvas, left, top, cw, ch, 0, 0, cw, ch);
+      } else {
+        outCanvas.width = cw; outCanvas.height = ch;
+        outCtx.drawImage(canvas, left, top, cw, ch, 0, 0, cw, ch);
+      }
+
+      resolve(outCanvas.toDataURL('image/jpeg', 0.92));
+    };
+    img.src = dataUrl;
+  });
+}
+
+function loadImageFile(file, slot) {
+  const reader = new FileReader();
+  reader.onload = async function(e) {
+    const rawData = e.target.result;
+    // Auto-crop to card boundaries
+    const data = await autoCropCardImage(rawData);
+    if (slot === 'front') {
+      pendingFrontData = data;
+      document.getElementById('front-preview').src = data;
+      document.getElementById('front-preview').style.display = 'block';
+      document.getElementById('front-slot').classList.add('has-img');
+    } else {
+      pendingBackData = data;
+      document.getElementById('back-preview').src = data;
+      document.getElementById('back-preview').style.display = 'block';
+      document.getElementById('back-slot').classList.add('has-img');
+    }
+    updateAnalyzeBtn();
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeImage(slot) {
+  if (slot === 'front') {
+    pendingFrontData = null;
+    document.getElementById('front-preview').style.display = 'none';
+    document.getElementById('front-slot').classList.remove('has-img');
+  } else {
+    pendingBackData = null;
+    document.getElementById('back-preview').style.display = 'none';
+    document.getElementById('back-slot').classList.remove('has-img');
+  }
+  updateAnalyzeBtn();
+}
+
+function updateAnalyzeBtn() {
+  document.getElementById('analyze-btn').disabled = !(pendingFrontData && pendingBackData);
+}
+
+// ─── ANALYZE CARD via Claude API ───
+async function analyzeCard() {
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    showApiKeyModal();
+    return;
+  }
+  if (!pendingFrontData || !pendingBackData) return;
+
+  const spinner = document.getElementById('spinner');
+  spinner.classList.add('visible');
+
+  try {
+    // Extract base64 data (remove data:image/...;base64, prefix)
+    const frontB64 = pendingFrontData.split(',')[1];
+    const backB64 = pendingBackData.split(',')[1];
+    const frontType = pendingFrontData.match(/data:(.*?);/)[1];
+    const backType = pendingBackData.match(/data:(.*?);/)[1];
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-5-20250514',
+        max_tokens: 1024,
+        messages: [{
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              source: { type: 'base64', media_type: frontType, data: frontB64 }
+            },
+            {
+              type: 'image',
+              source: { type: 'base64', media_type: backType, data: backB64 }
+            },
+            {
+              type: 'text',
+              text: `You are a baseball card expert. Analyze these two images (front and back) of a baseball card. Return ONLY valid JSON with these exact fields:
+{
+  "player": "Full Player Name",
+  "set": "Card Set / Brand (e.g. Topps Museum Collection)",
+  "year": 2025,
+  "number": "Card number (e.g. RS-AJ)",
+  "subset": "Subset or insert name (e.g. Retrospective Signatures)",
+  "serial": "Serial numbering if visible (e.g. /49)",
+  "autograph": "yes or no",
+  "hof": "yes if player is in the Baseball Hall of Fame, no if not yet",
+  "value": "Estimated market value in USD (e.g. $80)"
+}
+Be precise about the year, set name, and card number. Check the back of the card for details. For value, consider the player, rarity (serial numbering), autograph, and condition. Return ONLY the JSON, no other text.`
+            }
+          ]
+        }]
+      })
+    });
+
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.error?.message || 'API request failed');
+    }
+
+    const result = await response.json();
+    const text = result.content[0].text;
+    // Parse JSON from response (handle markdown code blocks)
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('Could not parse card data');
+
+    const cardData = JSON.parse(jsonMatch[0]);
+
+    // Populate result form
+    document.getElementById('res-player').value = cardData.player || '';
+    document.getElementById('res-set').value = cardData.set || '';
+    document.getElementById('res-year').value = cardData.year || '';
+    document.getElementById('res-number').value = cardData.number || '';
+    document.getElementById('res-subset').value = cardData.subset || '';
+    document.getElementById('res-serial').value = cardData.serial || '';
+    document.getElementById('res-auto').value = cardData.autograph || 'no';
+    document.getElementById('res-hof').value = cardData.hof || 'no';
+    document.getElementById('res-value').value = cardData.value || '';
+
+    document.getElementById('analysis-result').classList.add('visible');
+
+  } catch (err) {
+    toast('Error: ' + err.message, true);
+  } finally {
+    spinner.classList.remove('visible');
+  }
+}
+
+function saveCard() {
+  const newCard = {
+    id: Date.now().toString(),
+    player: document.getElementById('res-player').value,
+    set: document.getElementById('res-set').value,
+    year: parseInt(document.getElementById('res-year').value) || 0,
+    number: document.getElementById('res-number').value,
+    subset: document.getElementById('res-subset').value,
+    serial: document.getElementById('res-serial').value,
+    autograph: document.getElementById('res-auto').value,
+    hof: document.getElementById('res-hof').value,
+    value: document.getElementById('res-value').value,
+    frontImg: pendingFrontData,
+    backImg: pendingBackData,
+    addedDate: new Date().toISOString()
+  };
+
+  cards = loadCards();
+  cards.push(newCard);
+  saveCards(cards);
+  toast('Card added to your vault!');
+  resetScan();
+  showScreen('home-screen');
+}
+
+function resetScan() {
+  pendingFrontData = null;
+  pendingBackData = null;
+  document.getElementById('front-preview').style.display = 'none';
+  document.getElementById('back-preview').style.display = 'none';
+  document.getElementById('front-slot').classList.remove('has-img');
+  document.getElementById('back-slot').classList.remove('has-img');
+  document.getElementById('analysis-result').classList.remove('visible');
+  updateAnalyzeBtn();
+}
+
+// ─── EDIT CARD ───
+function editCurrentCard() {
+  const card = viewerCards[viewerIndex];
+  if (!card) return;
+  editingCardId = card.id;
+  document.getElementById('edit-player').value = card.player || '';
+  document.getElementById('edit-set').value = card.set || '';
+  document.getElementById('edit-year').value = card.year || '';
+  document.getElementById('edit-number').value = card.number || '';
+  document.getElementById('edit-subset').value = card.subset || '';
+  document.getElementById('edit-serial').value = card.serial || '';
+  document.getElementById('edit-auto').value = card.autograph || 'no';
+  document.getElementById('edit-hof').value = card.hof || 'no';
+  document.getElementById('edit-value').value = card.value || '';
+  showScreen('edit-screen');
+}
+
+function saveEditedCard() {
+  cards = loadCards();
+  const idx = cards.findIndex(c => c.id === editingCardId);
+  if (idx < 0) return;
+  cards[idx].player = document.getElementById('edit-player').value;
+  cards[idx].set = document.getElementById('edit-set').value;
+  cards[idx].year = parseInt(document.getElementById('edit-year').value) || 0;
+  cards[idx].number = document.getElementById('edit-number').value;
+  cards[idx].subset = document.getElementById('edit-subset').value;
+  cards[idx].serial = document.getElementById('edit-serial').value;
+  cards[idx].autograph = document.getElementById('edit-auto').value;
+  cards[idx].hof = document.getElementById('edit-hof').value;
+  cards[idx].value = document.getElementById('edit-value').value;
+  saveCards(cards);
+  viewerCards = cards;
+  renderViewerCard();
+  toast('Card updated!');
+  showScreen('viewer-screen');
+}
+
+function deleteCurrentCard() {
+  if (!confirm('Remove this card from your collection?')) return;
+  cards = loadCards();
+  cards = cards.filter(c => c.id !== editingCardId);
+  saveCards(cards);
+  toast('Card removed');
+  showScreen('home-screen');
+}
+
+// ─── API KEY MODAL ───
+function showApiKeyModal() {
+  document.getElementById('api-key-input').value = getApiKey();
+  document.getElementById('api-modal').classList.add('visible');
+}
+function closeApiModal() {
+  document.getElementById('api-modal').classList.remove('visible');
+}
+function saveApiKey() {
+  const key = document.getElementById('api-key-input').value.trim();
+  setApiKey(key);
+  closeApiModal();
+  toast(key ? 'API key saved' : 'API key cleared');
+}
+
+// ─── TOAST ───
+function toast(msg, isError) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.background = isError ? 'var(--red-accent)' : 'var(--green-check)';
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+// ─── INIT ───
+renderHome();
+
+// Drag & drop on scan zone
+const scanZone = document.getElementById('scan-zone');
+['dragenter','dragover'].forEach(ev => {
+  scanZone.addEventListener(ev, e => { e.preventDefault(); scanZone.classList.add('dragover'); });
+});
+['dragleave','drop'].forEach(ev => {
+  scanZone.addEventListener(ev, e => { e.preventDefault(); scanZone.classList.remove('dragover'); });
+});
+scanZone.addEventListener('drop', e => {
+  const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+  if (files[0]) loadImageFile(files[0], pendingFrontData ? 'back' : 'front');
+  if (files[1]) loadImageFile(files[1], pendingBackData ? 'front' : 'back');
+});
+</script>
+</body>
+</html>
