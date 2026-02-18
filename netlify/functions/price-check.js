@@ -101,7 +101,8 @@ exports.handler = async (event) => {
 
 function extractPrices(html) {
   const prices = [];
-  const priceRegex = /class="s-item__price"[^>]*>\s*\$([0-9,]+\.\d{2})/g;
+  // eBay uses s-card__price or s-item__price depending on layout
+  const priceRegex = /(?:s-card__price|s-item__price)">\s*\$([0-9,]+\.\d{2})/g;
   let match;
   while ((match = priceRegex.exec(html)) !== null) {
     const price = parseFloat(match[1].replace(/,/g, ''));
