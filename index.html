@@ -2052,8 +2052,9 @@ Return ONLY the JSON, no other text.`
     });
 
     if (!response.ok) {
-      const err = await response.json();
-      throw new Error(err.error?.message || 'API request failed');
+      let msg = 'API request failed (' + response.status + ')';
+      try { const err = await response.json(); msg = err.error?.message || msg; } catch(e) {}
+      throw new Error(msg);
     }
 
     const result = await response.json();
@@ -2094,13 +2095,14 @@ Return ONLY the JSON, no other text.`
           grade: cardData.grade,
         }),
       });
-      const priceData = await priceResp.json();
-      console.log('Price check result:', priceData);
-      if (priceData.found && priceData.median > 0) {
-        document.getElementById('res-value').value = '$' + priceData.median.toLocaleString();
+      if (priceResp.ok) {
+        const priceData = await priceResp.json();
+        if (priceData.found && priceData.median > 0) {
+          document.getElementById('res-value').value = '$' + priceData.median.toLocaleString();
+        }
       }
     } catch (e) {
-      console.error('Price check failed:', e);
+      // Silently fall back to AI estimate
     }
 
     // Show eBay comps link for the analyzed card

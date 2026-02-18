@@ -9,116 +9,80 @@ exports.handler = async (event) => {
   try {
     const card = JSON.parse(event.body);
 
-    // Build progressively broader search queries
-    // Start specific, broaden until we get results
-    const queries = [];
+    // Build a single focused query: year + player + auto + serial
+    // Skip set/subset names — they add noise and cause zero-result misses
+    const parts = [];
+    if (card.year) parts.push(card.year);
+    parts.push(card.player || '');
+    if (card.autograph === 'yes') parts.push('auto');
+    if (card.serial) parts.push(card.serial);
+    if (card.grade) parts.push(card.grade);
+    const query = parts.filter(Boolean).join(' ');
 
-    // Query 1: year + set + player + auto + serial + grade (most specific)
-    const q1 = [card.year, card.set, card.player,
-      card.autograph === 'yes' ? 'auto' : '',
-      card.serial, card.grade].filter(Boolean).join(' ');
-    queries.push(q1);
+    const url = 'https://www.ebay.com/sch/i.html?_nkw=' + encodeURIComponent(query)
+      + '&LH_Complete=1&LH_Sold=1&_sacat=212';
 
-    // Query 2: year + set + player + auto + serial (drop grade)
-    const q2 = [card.year, card.set, card.player,
-      card.autograph === 'yes' ? 'auto' : '',
-      card.serial].filter(Boolean).join(' ');
-    if (q2 !== q1) queries.push(q2);
+    const resp = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml',
+        'Accept-Language': 'en-US,en;q=0.9',
+      },
+    });
 
-    // Query 3: year + set + player + auto (drop serial too)
-    const q3 = [card.year, card.set, card.player,
-      card.autograph === 'yes' ? 'auto' : ''].filter(Boolean).join(' ');
-    if (q3 !== q2) queries.push(q3);
+    const html = await resp.text();
 
-    // Query 4: year + player + auto + serial (drop set name, keep scarcity)
-    const q4 = [card.year, card.player,
-      card.autograph === 'yes' ? 'auto' : '',
-      card.serial].filter(Boolean).join(' ');
-    if (!queries.includes(q4)) queries.push(q4);
-
-    let bestResult = null;
-
-    for (const query of queries) {
-      const url = 'https://www.ebay.com/sch/i.html?_nkw=' + encodeURIComponent(query)
-        + '&LH_Complete=1&LH_Sold=1&_sacat=212&_sop=13';
-
-      const resp = await fetch(url, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Accept': 'text/html,application/xhtml+xml',
-          'Accept-Language': 'en-US,en;q=0.9',
-        },
-      });
-
-      const html = await resp.text();
-      const prices = extractPrices(html, card);
-
-      if (prices.length >= 2) {
-        bestResult = { query, prices };
-        break; // good enough — use the most specific query with results
-      }
-      if (prices.length === 1 && !bestResult) {
-        bestResult = { query, prices };
-        // keep trying for more comps
-      }
+    // Extract prices
+    const prices = [];
+    const priceRegex = /(?:s-card__price|s-item__price)">\s*\$([0-9,]+\.\d{2})/g;
+    let match;
+    while ((match = priceRegex.exec(html)) !== null) {
+      const price = parseFloat(match[1].replace(/,/g, ''));
+      if (price > 0.99) prices.push(price);
     }
 
-    if (!bestResult || bestResult.prices.length === 0) {
+    // Set a minimum price floor to filter out base card noise
+    let floor = 5;
+    if (card.autograph === 'yes') floor = 15;
+    if (card.serial) {
+      const num = parseInt(card.serial.replace(/\//g, ''));
+      if (num <= 10) floor = 50;
+      else if (num <= 25) floor = 25;
+    }
+    if (card.grade) floor = Math.max(floor, 20);
+
+    const filtered = prices.filter(p => p >= floor);
+
+    if (filtered.length === 0) {
       return {
         statusCode: 200,
         headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-        body: JSON.stringify({ found: false, queries }),
+        body: JSON.stringify({ found: false, query }),
       };
     }
 
-    const prices = bestResult.prices;
-    prices.sort((a, b) => a - b);
-    const median = prices[Math.floor(prices.length / 2)];
-    const avg = prices.reduce((s, p) => s + p, 0) / prices.length;
+    filtered.sort((a, b) => a - b);
+    const median = filtered[Math.floor(filtered.length / 2)];
+    const avg = filtered.reduce((s, p) => s + p, 0) / filtered.length;
 
     return {
       statusCode: 200,
       headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       body: JSON.stringify({
         found: true,
-        query: bestResult.query,
-        count: prices.length,
+        query,
+        count: filtered.length,
         median: Math.round(median),
         avg: Math.round(avg),
-        low: Math.round(prices[0]),
-        high: Math.round(prices[prices.length - 1]),
-        prices: prices.slice(0, 10),
+        low: Math.round(filtered[0]),
+        high: Math.round(filtered[filtered.length - 1]),
       }),
     };
   } catch (err) {
     return {
       statusCode: 500,
-      headers: { 'Access-Control-Allow-Origin': '*' },
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       body: JSON.stringify({ error: err.message }),
     };
   }
 };
-
-function extractPrices(html, card) {
-  const allPrices = [];
-  // eBay uses s-card__price or s-item__price depending on layout
-  const priceRegex = /(?:s-card__price|s-item__price)">\s*\$([0-9,]+\.\d{2})/g;
-  let match;
-  while ((match = priceRegex.exec(html)) !== null) {
-    const price = parseFloat(match[1].replace(/,/g, ''));
-    if (price > 0.99) allPrices.push(price);
-  }
-
-  // Set a minimum price floor to filter out base card noise
-  // Autos and numbered cards don't sell for $5
-  let floor = 5;
-  if (card.autograph === 'yes') floor = 15;
-  if (card.serial) {
-    const num = parseInt(card.serial.replace(/\//g, ''));
-    if (num <= 10) floor = 50;
-    else if (num <= 25) floor = 25;
-  }
-  if (card.grade) floor = Math.max(floor, 20);
-
-  return allPrices.filter(p => p >= floor);
-}
