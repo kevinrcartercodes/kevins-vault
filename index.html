@@ -1179,9 +1179,10 @@ function loadCards() {
 function saveCards(cards) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(cards));
+    return true;
   } catch (e) {
     console.error('Storage error:', e);
-    toast('Storage full — try removing old cards', true);
+    return false;
   }
 }
 function getApiKey() { return localStorage.getItem(API_KEY_KEY) || window.VAULT_API_KEY || ''; }
@@ -2027,36 +2028,51 @@ function compressImage(dataUrl, maxDim, quality) {
 }
 
 async function saveCard() {
-  // Compress images to fit in localStorage (~800px max, 0.7 quality ≈ 50-100KB each)
-  var frontCompressed = await compressImage(pendingFrontData, 800, 0.7);
-  var backCompressed = await compressImage(pendingBackData, 800, 0.7);
-
   const playerName = document.getElementById('res-player').value;
   const hofMatch = findHofPlayer(playerName);
 
-  const newCard = {
-    id: Date.now().toString(),
-    player: playerName,
-    set: document.getElementById('res-set').value,
-    year: parseInt(document.getElementById('res-year').value) || 0,
-    number: document.getElementById('res-number').value,
-    subset: document.getElementById('res-subset').value,
-    serial: document.getElementById('res-serial').value,
-    autograph: document.getElementById('res-auto').value,
-    hof: hofMatch ? 'yes' : document.getElementById('res-hof').value,
-    inductionYear: hofMatch ? hofMatch.inducted : null,
-    value: document.getElementById('res-value').value,
-    frontImg: frontCompressed,
-    backImg: backCompressed,
-    addedDate: new Date().toISOString()
-  };
+  // Try progressively smaller images until it fits in localStorage
+  const sizes = [
+    { dim: 600, q: 0.6 },
+    { dim: 400, q: 0.5 },
+    { dim: 300, q: 0.4 },
+  ];
 
-  cards = loadCards();
-  cards.push(newCard);
-  saveCards(cards);
-  toast('Card added to your vault!');
-  resetScan();
-  showScreen('home-screen');
+  for (let i = 0; i < sizes.length; i++) {
+    var frontCompressed = await compressImage(pendingFrontData, sizes[i].dim, sizes[i].q);
+    var backCompressed = await compressImage(pendingBackData, sizes[i].dim, sizes[i].q);
+
+    const newCard = {
+      id: Date.now().toString(),
+      player: playerName,
+      set: document.getElementById('res-set').value,
+      year: parseInt(document.getElementById('res-year').value) || 0,
+      number: document.getElementById('res-number').value,
+      subset: document.getElementById('res-subset').value,
+      serial: document.getElementById('res-serial').value,
+      autograph: document.getElementById('res-auto').value,
+      hof: hofMatch ? 'yes' : document.getElementById('res-hof').value,
+      inductionYear: hofMatch ? hofMatch.inducted : null,
+      value: document.getElementById('res-value').value,
+      frontImg: frontCompressed,
+      backImg: backCompressed,
+      addedDate: new Date().toISOString()
+    };
+
+    cards = loadCards();
+    cards.push(newCard);
+    if (saveCards(cards)) {
+      toast('Card added to your vault!');
+      resetScan();
+      showScreen('home-screen');
+      return;
+    }
+    // Save failed — try smaller
+    cards.pop();
+  }
+
+  // All sizes failed
+  toast('Storage full — remove old cards to make room', true);
 }
 
 function resetScan() {
