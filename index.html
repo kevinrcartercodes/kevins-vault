@@ -1275,6 +1275,13 @@ const HOF_PLAYERS = [
   { name: "Joe Mauer", inducted: 2024, position: "C" },
 ].filter(p => p.inducted > 0).sort((a,b) => a.name.localeCompare(b.name));
 
+// ─── HOF LOOKUP ───
+function findHofPlayer(name) {
+  if (!name) return null;
+  const lower = name.toLowerCase();
+  return HOF_PLAYERS.find(p => p.name.toLowerCase() === lower) || null;
+}
+
 // ─── STATE ───
 let cards = loadCards();
 let viewerCards = [];
@@ -1354,7 +1361,14 @@ function renderYearGroups(containerId, cardList, isHof) {
 
   const byYear = {};
   cardList.forEach(c => {
-    const y = c.year || 'Unknown';
+    // For HoF cards, group by induction year; for others, by card year
+    let y;
+    if (isHof) {
+      const hofEntry = findHofPlayer(c.player);
+      y = hofEntry ? hofEntry.inducted : (c.year || 'Unknown');
+    } else {
+      y = c.year || 'Unknown';
+    }
     if (!byYear[y]) byYear[y] = [];
     byYear[y].push(c);
   });
@@ -1363,7 +1377,7 @@ function renderYearGroups(containerId, cardList, isHof) {
   container.innerHTML = years.map(year => `
     <div class="year-group open" data-year="${year}">
       <div class="year-group-header" onclick="this.parentElement.classList.toggle('open')">
-        <span class="year">${year}</span>
+        <span class="year">${isHof ? 'Inducted ' : ''}${year}</span>
         <span class="count">${byYear[year].length} card${byYear[year].length !== 1 ? 's' : ''}</span>
         <span class="chevron">▼</span>
       </div>
@@ -1997,7 +2011,11 @@ Be precise about the year, set name, and card number. Check the back of the card
     document.getElementById('res-subset').value = cardData.subset || '';
     document.getElementById('res-serial').value = cardData.serial || '';
     document.getElementById('res-auto').value = cardData.autograph || 'no';
-    document.getElementById('res-hof').value = cardData.hof || 'no';
+
+    // Cross-reference player against HoF master list — override AI if needed
+    const hofMatch = findHofPlayer(cardData.player);
+    document.getElementById('res-hof').value = hofMatch ? 'yes' : (cardData.hof || 'no');
+
     document.getElementById('res-value').value = cardData.value || '';
 
     // Show eBay comps link for the analyzed card
