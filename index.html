@@ -1944,16 +1944,34 @@ function openEditor(dataUrl, slot) {
 
   editorImg = new Image();
   editorImg.onload = function() {
-    drawEditorCanvas();
+    // Make editor visible FIRST so the wrap has real layout dimensions,
+    // then wait one frame for the browser to compute layout before drawing.
     document.getElementById('photo-editor').classList.add('visible');
+    requestAnimationFrame(function() {
+      drawEditorCanvas(true);
+    });
   };
   editorImg.src = dataUrl;
 }
 
-function drawEditorCanvas() {
+function drawEditorCanvas(resetCrop) {
   const canvas = document.getElementById('editor-canvas');
   const ctx = canvas.getContext('2d');
   const wrap = document.getElementById('editor-wrap');
+
+  // Save old canvas display size and crop ratios BEFORE resizing,
+  // so we can preserve the user's crop selection on redraws.
+  const oldCr = canvas.getBoundingClientRect();
+  const hadCrop = !resetCrop && oldCr.width > 1 && oldCr.height > 1;
+  let cropRatios = null;
+  if (hadCrop) {
+    cropRatios = {
+      rx: cropBox.x / oldCr.width,
+      ry: cropBox.y / oldCr.height,
+      rw: cropBox.w / oldCr.width,
+      rh: cropBox.h / oldCr.height
+    };
+  }
 
   let iw = editorImg.width, ih = editorImg.height;
 
@@ -1983,8 +2001,18 @@ function drawEditorCanvas() {
   ctx.drawImage(editorImg, -iw / 2, -ih / 2);
   ctx.restore();
 
-  // Reset crop box to full canvas
-  editorResetCrop();
+  if (hadCrop && cropRatios) {
+    // Restore crop proportionally on the new canvas display size
+    const newCr = canvas.getBoundingClientRect();
+    cropBox.x = cropRatios.rx * newCr.width;
+    cropBox.y = cropRatios.ry * newCr.height;
+    cropBox.w = cropRatios.rw * newCr.width;
+    cropBox.h = cropRatios.rh * newCr.height;
+    updateCropUI();
+  } else {
+    // First draw or explicit reset: crop to full canvas
+    editorResetCrop();
+  }
 }
 
 function editorResetCrop() {
