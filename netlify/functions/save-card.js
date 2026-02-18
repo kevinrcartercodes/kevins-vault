@@ -1,3 +1,22 @@
+async function readCards(gistId, token) {
+  const resp = await fetch(`https://api.github.com/gists/${gistId}`, {
+    headers: {
+      'Authorization': `token ${token}`,
+      'Accept': 'application/vnd.github.v3+json',
+    },
+  });
+  const gist = await resp.json();
+  const file = gist.files?.['cards.json'];
+
+  if (file?.truncated) {
+    const rawResp = await fetch(file.raw_url, {
+      headers: { 'Authorization': `token ${token}` },
+    });
+    return JSON.parse(await rawResp.text());
+  }
+  return JSON.parse(file?.content || '[]');
+}
+
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Content-Type' } };
@@ -11,16 +30,7 @@ exports.handler = async (event) => {
 
   try {
     const newCard = JSON.parse(event.body);
-
-    // Read current cards
-    const getResp = await fetch(`https://api.github.com/gists/${gistId}`, {
-      headers: {
-        'Authorization': `token ${token}`,
-        'Accept': 'application/vnd.github.v3+json',
-      },
-    });
-    const gist = await getResp.json();
-    const cards = JSON.parse(gist.files?.['cards.json']?.content || '[]');
+    const cards = await readCards(gistId, token);
 
     // Upsert: update if card with same id exists, otherwise add
     const existingIdx = cards.findIndex(c => c.id === newCard.id);
@@ -56,7 +66,7 @@ exports.handler = async (event) => {
   } catch (err) {
     return {
       statusCode: 500,
-      headers: { 'Access-Control-Allow-Origin': '*' },
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       body: JSON.stringify({ error: err.message }),
     };
   }

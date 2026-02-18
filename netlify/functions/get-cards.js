@@ -10,7 +10,18 @@ exports.handler = async () => {
       },
     });
     const gist = await resp.json();
-    const content = gist.files?.['cards.json']?.content || '[]';
+    const file = gist.files?.['cards.json'];
+
+    let content;
+    if (file?.truncated) {
+      // File too large for inline content — fetch from raw URL
+      const rawResp = await fetch(file.raw_url, {
+        headers: { 'Authorization': `token ${token}` },
+      });
+      content = await rawResp.text();
+    } else {
+      content = file?.content || '[]';
+    }
 
     return {
       statusCode: 200,
@@ -20,6 +31,7 @@ exports.handler = async () => {
   } catch (err) {
     return {
       statusCode: 500,
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       body: JSON.stringify({ error: err.message }),
     };
   }
