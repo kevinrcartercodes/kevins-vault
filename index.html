@@ -1190,23 +1190,31 @@ function setApiKey(k) { localStorage.setItem(API_KEY_KEY, k); }
 // ─── HOF MASTER LIST ───
 const HOF_PLAYERS = [
   { name: "Hank Aaron", inducted: 1982, position: "OF" },
+  { name: "Jim Abbott", inducted: 0, position: "P" },
   { name: "Roberto Alomar", inducted: 2011, position: "2B" },
   { name: "Luis Aparicio", inducted: 1984, position: "SS" },
+  { name: "Luke Appling", inducted: 1964, position: "SS" },
+  { name: "Richie Ashburn", inducted: 1995, position: "OF" },
   { name: "Jeff Bagwell", inducted: 2017, position: "1B" },
   { name: "Ernie Banks", inducted: 1977, position: "SS" },
   { name: "Johnny Bench", inducted: 1989, position: "C" },
+  { name: "Yogi Berra", inducted: 1972, position: "C" },
   { name: "Craig Biggio", inducted: 2015, position: "2B" },
   { name: "Wade Boggs", inducted: 2005, position: "3B" },
   { name: "George Brett", inducted: 1999, position: "3B" },
   { name: "Lou Brock", inducted: 1985, position: "OF" },
   { name: "Jim Bunning", inducted: 1996, position: "P" },
+  { name: "Roy Campanella", inducted: 1969, position: "C" },
   { name: "Rod Carew", inducted: 1991, position: "1B" },
   { name: "Steve Carlton", inducted: 1994, position: "P" },
   { name: "Gary Carter", inducted: 2003, position: "C" },
+  { name: "Orlando Cepeda", inducted: 1999, position: "1B" },
   { name: "Roberto Clemente", inducted: 1973, position: "OF" },
   { name: "Ty Cobb", inducted: 1936, position: "OF" },
   { name: "Andre Dawson", inducted: 2010, position: "OF" },
+  { name: "Dizzy Dean", inducted: 1953, position: "P" },
   { name: "Joe DiMaggio", inducted: 1955, position: "OF" },
+  { name: "Don Drysdale", inducted: 1984, position: "P" },
   { name: "Dennis Eckersley", inducted: 2004, position: "P" },
   { name: "Bob Feller", inducted: 1962, position: "P" },
   { name: "Rollie Fingers", inducted: 1992, position: "P" },
@@ -1216,50 +1224,78 @@ const HOF_PLAYERS = [
   { name: "Lou Gehrig", inducted: 1939, position: "1B" },
   { name: "Bob Gibson", inducted: 1981, position: "P" },
   { name: "Tom Glavine", inducted: 2014, position: "P" },
+  { name: "Goose Gossage", inducted: 2008, position: "P" },
+  { name: "Hank Greenberg", inducted: 1956, position: "1B" },
   { name: "Ken Griffey Jr.", inducted: 2016, position: "OF" },
+  { name: "Burleigh Grimes", inducted: 1964, position: "P" },
+  { name: "Lefty Grove", inducted: 1947, position: "P" },
   { name: "Tony Gwynn", inducted: 2007, position: "OF" },
+  { name: "Roy Halladay", inducted: 2019, position: "P" },
   { name: "Rickey Henderson", inducted: 2009, position: "OF" },
   { name: "Trevor Hoffman", inducted: 2018, position: "P" },
   { name: "Rogers Hornsby", inducted: 1942, position: "2B" },
+  { name: "Carl Hubbell", inducted: 1947, position: "P" },
+  { name: "Catfish Hunter", inducted: 1987, position: "P" },
   { name: "Reggie Jackson", inducted: 1993, position: "OF" },
+  { name: "Ferguson Jenkins", inducted: 1991, position: "P" },
   { name: "Derek Jeter", inducted: 2020, position: "SS" },
   { name: "Randy Johnson", inducted: 2015, position: "P" },
   { name: "Walter Johnson", inducted: 1936, position: "P" },
   { name: "Chipper Jones", inducted: 2018, position: "3B" },
   { name: "Andruw Jones", inducted: 2025, position: "OF" },
   { name: "Al Kaline", inducted: 1980, position: "OF" },
+  { name: "George Kell", inducted: 1983, position: "3B" },
   { name: "Harmon Killebrew", inducted: 1984, position: "1B" },
+  { name: "Ralph Kiner", inducted: 1975, position: "OF" },
   { name: "Sandy Koufax", inducted: 1972, position: "P" },
   { name: "Barry Larkin", inducted: 2012, position: "SS" },
+  { name: "Bob Lemon", inducted: 1976, position: "P" },
   { name: "Greg Maddux", inducted: 2014, position: "P" },
   { name: "Mickey Mantle", inducted: 1974, position: "OF" },
+  { name: "Juan Marichal", inducted: 1983, position: "P" },
+  { name: "Roger Maris", inducted: 0, position: "OF" },
+  { name: "Eddie Mathews", inducted: 1978, position: "3B" },
+  { name: "Don Mattingly", inducted: 0, position: "1B" },
+  { name: "Willie McCovey", inducted: 1986, position: "1B" },
   { name: "Pedro Martinez", inducted: 2015, position: "P" },
   { name: "Willie Mays", inducted: 1979, position: "OF" },
+  { name: "Bill Mazeroski", inducted: 2001, position: "2B" },
   { name: "Paul Molitor", inducted: 2004, position: "DH" },
   { name: "Joe Morgan", inducted: 1990, position: "2B" },
+  { name: "Thurman Munson", inducted: 0, position: "C" },
   { name: "Eddie Murray", inducted: 2003, position: "1B" },
   { name: "Stan Musial", inducted: 1969, position: "OF" },
   { name: "Phil Niekro", inducted: 1997, position: "P" },
+  { name: "Paul O'Neill", inducted: 0, position: "OF" },
   { name: "Jim Palmer", inducted: 1990, position: "P" },
+  { name: "Dave Parker", inducted: 2025, position: "OF" },
   { name: "Tony Perez", inducted: 2000, position: "1B" },
+  { name: "Gaylord Perry", inducted: 1991, position: "P" },
   { name: "Mike Piazza", inducted: 2016, position: "C" },
   { name: "Kirby Puckett", inducted: 2001, position: "OF" },
+  { name: "Albert Pujols", inducted: 0, position: "1B" },
+  { name: "Manny Ramirez", inducted: 0, position: "OF" },
+  { name: "Pee Wee Reese", inducted: 1984, position: "SS" },
+  { name: "Jim Rice", inducted: 2009, position: "OF" },
   { name: "Mariano Rivera", inducted: 2019, position: "P" },
+  { name: "Phil Rizzuto", inducted: 1994, position: "SS" },
   { name: "Brooks Robinson", inducted: 1983, position: "3B" },
   { name: "Cal Ripken Jr.", inducted: 2007, position: "SS" },
   { name: "Frank Robinson", inducted: 1982, position: "OF" },
   { name: "Jackie Robinson", inducted: 1962, position: "2B" },
   { name: "Ivan Rodriguez", inducted: 2017, position: "C" },
-  { name: "Pete Rose", inducted: 0, position: "OF" }, /* controversial */
+  { name: "Alex Rodriguez", inducted: 0, position: "SS" },
   { name: "Babe Ruth", inducted: 1936, position: "OF/P" },
   { name: "Nolan Ryan", inducted: 1999, position: "P" },
   { name: "Ryne Sandberg", inducted: 2005, position: "2B" },
   { name: "Mike Schmidt", inducted: 1995, position: "3B" },
+  { name: "Red Schoendienst", inducted: 1989, position: "2B" },
   { name: "Tom Seaver", inducted: 1992, position: "P" },
   { name: "Ozzie Smith", inducted: 2002, position: "SS" },
   { name: "John Smoltz", inducted: 2015, position: "P" },
   { name: "Duke Snider", inducted: 1980, position: "OF" },
   { name: "Warren Spahn", inducted: 1973, position: "P" },
+  { name: "Tris Speaker", inducted: 1937, position: "OF" },
   { name: "Willie Stargell", inducted: 1988, position: "OF" },
   { name: "Don Sutton", inducted: 1998, position: "P" },
   { name: "Frank Thomas", inducted: 2014, position: "1B" },
@@ -1274,19 +1310,58 @@ const HOF_PLAYERS = [
   { name: "CC Sabathia", inducted: 2025, position: "P" },
   { name: "Ichiro Suzuki", inducted: 2025, position: "OF" },
   { name: "Billy Wagner", inducted: 2025, position: "P" },
+  { name: "Dick Allen", inducted: 2025, position: "1B" },
   { name: "David Ortiz", inducted: 2022, position: "DH" },
   { name: "Scott Rolen", inducted: 2023, position: "3B" },
   { name: "Fred McGriff", inducted: 2023, position: "1B" },
   { name: "Adrian Beltre", inducted: 2024, position: "3B" },
   { name: "Todd Helton", inducted: 2024, position: "1B" },
   { name: "Joe Mauer", inducted: 2024, position: "C" },
+  { name: "Jim Leyland", inducted: 2024, position: "MGR" },
 ].filter(p => p.inducted > 0).sort((a,b) => a.name.localeCompare(b.name));
 
-// ─── HOF LOOKUP ───
+// ─── HOF LOOKUP (fuzzy) ───
+function normalizePlayerName(name) {
+  if (!name) return '';
+  return name.toLowerCase()
+    .replace(/['']/g, "'")     // normalize apostrophes
+    .replace(/\./g, '')        // remove periods (Jr. → Jr)
+    .replace(/\s+/g, ' ')     // collapse whitespace
+    .trim();
+}
+
 function findHofPlayer(name) {
   if (!name) return null;
-  const lower = name.toLowerCase();
-  return HOF_PLAYERS.find(p => p.name.toLowerCase() === lower) || null;
+  const norm = normalizePlayerName(name);
+
+  // Exact match first
+  let match = HOF_PLAYERS.find(p => normalizePlayerName(p.name) === norm);
+  if (match) return match;
+
+  // Try without suffixes (Jr, Sr, III)
+  const noSuffix = norm.replace(/\s+(jr|sr|ii|iii|iv)$/i, '');
+  match = HOF_PLAYERS.find(p => normalizePlayerName(p.name).replace(/\s+(jr|sr|ii|iii|iv)$/i, '') === noSuffix);
+  if (match) return match;
+
+  // Try last name + first initial match (handles "Ken Griffey" matching "Ken Griffey Jr.")
+  const parts = norm.split(' ');
+  if (parts.length >= 2) {
+    const firstName = parts[0];
+    const lastName = parts[parts.length - 1];
+    match = HOF_PLAYERS.find(p => {
+      const pp = normalizePlayerName(p.name).split(' ');
+      return pp[0] === firstName && pp[pp.length - 1] === lastName;
+    });
+    if (match) return match;
+
+    // Last name only match (if unique among HoF)
+    const lastNameMatches = HOF_PLAYERS.filter(p =>
+      normalizePlayerName(p.name).split(' ').pop() === lastName
+    );
+    if (lastNameMatches.length === 1) return lastNameMatches[0];
+  }
+
+  return null;
 }
 
 // ─── STATE ───
@@ -1340,13 +1415,13 @@ function showScreen(id) {
 function renderHome() {
   cards = loadCards();
 
-  // Auto-correct HoF status for all cards against master list
+  // Auto-correct HoF status and induction year for all cards against master list
   let changed = false;
   cards.forEach(c => {
     const hofMatch = findHofPlayer(c.player);
-    if (hofMatch && c.hof !== 'yes') {
-      c.hof = 'yes';
-      changed = true;
+    if (hofMatch) {
+      if (c.hof !== 'yes') { c.hof = 'yes'; changed = true; }
+      if (c.inductionYear !== hofMatch.inducted) { c.inductionYear = hofMatch.inducted; changed = true; }
     }
   });
   if (changed) saveCards(cards);
@@ -1383,8 +1458,7 @@ function renderYearGroups(containerId, cardList, isHof) {
     // For HoF cards, group by induction year; for others, by card year
     let y;
     if (isHof) {
-      const hofEntry = findHofPlayer(c.player);
-      y = hofEntry ? hofEntry.inducted : (c.year || 'Unknown');
+      y = c.inductionYear || (findHofPlayer(c.player) || {}).inducted || c.year || 'Unknown';
     } else {
       y = c.year || 'Unknown';
     }
@@ -1957,16 +2031,20 @@ async function saveCard() {
   var frontCompressed = await compressImage(pendingFrontData, 800, 0.7);
   var backCompressed = await compressImage(pendingBackData, 800, 0.7);
 
+  const playerName = document.getElementById('res-player').value;
+  const hofMatch = findHofPlayer(playerName);
+
   const newCard = {
     id: Date.now().toString(),
-    player: document.getElementById('res-player').value,
+    player: playerName,
     set: document.getElementById('res-set').value,
     year: parseInt(document.getElementById('res-year').value) || 0,
     number: document.getElementById('res-number').value,
     subset: document.getElementById('res-subset').value,
     serial: document.getElementById('res-serial').value,
     autograph: document.getElementById('res-auto').value,
-    hof: document.getElementById('res-hof').value,
+    hof: hofMatch ? 'yes' : document.getElementById('res-hof').value,
+    inductionYear: hofMatch ? hofMatch.inducted : null,
     value: document.getElementById('res-value').value,
     frontImg: frontCompressed,
     backImg: backCompressed,
