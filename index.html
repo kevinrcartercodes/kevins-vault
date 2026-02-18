@@ -238,6 +238,16 @@ html, body {
   margin-left: 3px;
   font-size: 9px;
 }
+.card-thumb .thumb-grade {
+  position: absolute; top: 4px; right: 4px;
+  background: linear-gradient(135deg, #1a6bff, #00c6ff);
+  color: #fff;
+  font-size: 8px; font-weight: 700;
+  padding: 1px 5px; border-radius: 3px;
+  font-family: var(--mono);
+  letter-spacing: 0.3px;
+  line-height: 1.4;
+}
 
 /* ─── CARD VIEWER (SWIPE/FLIP) ─── */
 #viewer-screen .top-bar { background: rgba(10,14,23,0.95); }
@@ -377,6 +387,16 @@ html, body {
   text-transform: uppercase;
   letter-spacing: 1px;
   margin-top: 6px;
+}
+.grade-badge {
+  display: inline-block;
+  background: linear-gradient(135deg, #1a6bff, #00c6ff);
+  color: #fff;
+  font-size: 11px; font-weight: 700;
+  padding: 3px 10px; border-radius: 4px;
+  letter-spacing: 0.5px;
+  margin-top: 4px;
+  font-family: var(--mono);
 }
 
 /* ─── CAREER STATS PANEL ─── */
@@ -939,6 +959,7 @@ html, body {
         </a>
       </div>
       <div id="viewer-badge"></div>
+      <div id="viewer-grade-badge"></div>
     </div>
     <div id="stats-container"></div>
     <div style="height:20px;"></div>
@@ -1055,6 +1076,26 @@ html, body {
         </select>
       </div>
       <div class="result-field">
+        <label>Graded</label>
+        <select id="res-grade">
+          <option value="">Raw (Ungraded)</option>
+          <option value="PSA 10">PSA 10</option>
+          <option value="PSA 9">PSA 9</option>
+          <option value="PSA 8">PSA 8</option>
+          <option value="PSA 7">PSA 7</option>
+          <option value="PSA 6">PSA 6</option>
+          <option value="BGS 10">BGS 10 (Pristine)</option>
+          <option value="BGS 9.5">BGS 9.5 (Gem Mint)</option>
+          <option value="BGS 9">BGS 9</option>
+          <option value="BGS 8.5">BGS 8.5</option>
+          <option value="BGS 8">BGS 8</option>
+          <option value="SGC 10">SGC 10</option>
+          <option value="SGC 9.5">SGC 9.5</option>
+          <option value="SGC 9">SGC 9</option>
+          <option value="SGC 8">SGC 8</option>
+        </select>
+      </div>
+      <div class="result-field">
         <label>Hall of Fame</label>
         <select id="res-hof">
           <option value="yes">Yes — Inducted</option>
@@ -1128,6 +1169,26 @@ html, body {
       <div class="result-field">
         <label>Autograph</label>
         <select id="edit-auto"><option value="yes">Yes</option><option value="no">No</option></select>
+      </div>
+      <div class="result-field">
+        <label>Graded</label>
+        <select id="edit-grade">
+          <option value="">Raw (Ungraded)</option>
+          <option value="PSA 10">PSA 10</option>
+          <option value="PSA 9">PSA 9</option>
+          <option value="PSA 8">PSA 8</option>
+          <option value="PSA 7">PSA 7</option>
+          <option value="PSA 6">PSA 6</option>
+          <option value="BGS 10">BGS 10 (Pristine)</option>
+          <option value="BGS 9.5">BGS 9.5 (Gem Mint)</option>
+          <option value="BGS 9">BGS 9</option>
+          <option value="BGS 8.5">BGS 8.5</option>
+          <option value="BGS 8">BGS 8</option>
+          <option value="SGC 10">SGC 10</option>
+          <option value="SGC 9.5">SGC 9.5</option>
+          <option value="SGC 9">SGC 9</option>
+          <option value="SGC 8">SGC 8</option>
+        </select>
       </div>
       <div class="result-field">
         <label>Hall of Fame</label>
@@ -1489,6 +1550,7 @@ function renderYearGroups(containerId, cardList, isHof) {
           <div class="card-thumb ${card.hof === 'yes' ? 'hof' : ''}" onclick="openViewer('${card.id}')">
             <img src="${card.frontImg}" alt="${card.player}" loading="lazy"
               onerror="this.style.display='none'">
+            ${card.grade ? '<div class="thumb-grade">' + card.grade + '</div>' : ''}
             <div class="thumb-label">${card.player}</div>
           </div>
         `).join('')}
@@ -1522,6 +1584,7 @@ function buildCompsUrl(card) {
   parts.push(card.player);
   if (card.autograph === 'yes') parts.push('auto');
   if (card.serial) parts.push(card.serial);
+  if (card.grade) parts.push(card.grade);
   const query = parts.join(' ');
   return 'https://www.ebay.com/sch/i.html?_nkw=' + encodeURIComponent(query)
     + '&LH_Complete=1&LH_Sold=1&_sacat=212';  // 212 = Sports Trading Cards
@@ -1552,6 +1615,8 @@ function renderViewerCard() {
 
   document.getElementById('viewer-badge').innerHTML =
     card.hof === 'yes' ? '<span class="hof-badge">★ Hall of Fame</span>' : '';
+  document.getElementById('viewer-grade-badge').innerHTML =
+    card.grade ? '<span class="grade-badge">' + card.grade + '</span>' : '';
   document.getElementById('viewer-counter').textContent =
     `${viewerIndex + 1} / ${viewerCards.length}`;
 
@@ -1960,10 +2025,11 @@ async function analyzeCard() {
   "subset": "Subset or insert name (e.g. Retrospective Signatures)",
   "serial": "Serial numbering if visible (e.g. /49)",
   "autograph": "yes or no",
+  "grade": "If the card is in a grading slab (PSA, BGS, SGC, etc.), return the grade like 'PSA 10', 'BGS 9.5', 'SGC 9', etc. If raw/ungraded, return empty string",
   "hof": "yes if player is in the Baseball Hall of Fame, no if not yet",
   "value": "Estimated market value in USD (e.g. $80)"
 }
-Be precise about the year, set name, and card number. Check the back of the card for details. For value, consider the player, rarity (serial numbering), autograph, and condition. Return ONLY the JSON, no other text.`
+Be precise about the year, set name, and card number. Check the back of the card for details. For value, consider the player, rarity (serial numbering), autograph, grade/condition, and Hall of Fame status. Graded cards (especially PSA 10, BGS 9.5+) command significant premiums over raw cards — factor this into your value estimate. Return ONLY the JSON, no other text.`
             }
           ]
         }]
@@ -1991,6 +2057,7 @@ Be precise about the year, set name, and card number. Check the back of the card
     document.getElementById('res-subset').value = cardData.subset || '';
     document.getElementById('res-serial').value = cardData.serial || '';
     document.getElementById('res-auto').value = cardData.autograph || 'no';
+    document.getElementById('res-grade').value = cardData.grade || '';
 
     // Cross-reference player against HoF master list — override AI if needed
     const hofMatch = findHofPlayer(cardData.player);
@@ -2053,6 +2120,7 @@ async function saveCard() {
     subset: document.getElementById('res-subset').value,
     serial: document.getElementById('res-serial').value,
     autograph: document.getElementById('res-auto').value,
+    grade: document.getElementById('res-grade').value,
     hof: hofMatch ? 'yes' : document.getElementById('res-hof').value,
     inductionYear: hofMatch ? hofMatch.inducted : null,
     value: document.getElementById('res-value').value,
@@ -2106,6 +2174,7 @@ function editCurrentCard() {
   document.getElementById('edit-subset').value = card.subset || '';
   document.getElementById('edit-serial').value = card.serial || '';
   document.getElementById('edit-auto').value = card.autograph || 'no';
+  document.getElementById('edit-grade').value = card.grade || '';
   document.getElementById('edit-hof').value = card.hof || 'no';
   document.getElementById('edit-value').value = card.value || '';
   showScreen('edit-screen');
@@ -2122,6 +2191,7 @@ async function saveEditedCard() {
   cards[idx].subset = document.getElementById('edit-subset').value;
   cards[idx].serial = document.getElementById('edit-serial').value;
   cards[idx].autograph = document.getElementById('edit-auto').value;
+  cards[idx].grade = document.getElementById('edit-grade').value;
   cards[idx].hof = document.getElementById('edit-hof').value;
   cards[idx].value = document.getElementById('edit-value').value;
 
