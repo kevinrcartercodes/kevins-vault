@@ -844,6 +844,114 @@ html, body {
 .delay-1 { animation-delay: 0.1s; }
 .delay-2 { animation-delay: 0.2s; }
 .delay-3 { animation-delay: 0.3s; }
+
+/* ─── PHOTO EDITOR ─── */
+.editor-overlay {
+  position: fixed; inset: 0;
+  background: var(--midnight);
+  display: none; flex-direction: column;
+  z-index: 150;
+}
+.editor-overlay.visible { display: flex; }
+
+.editor-topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 16px;
+  padding-top: max(10px, env(safe-area-inset-top));
+  border-bottom: 1px solid rgba(201,168,76,0.15);
+  flex-shrink: 0;
+}
+.editor-topbar button {
+  background: none; border: none;
+  font-family: 'Outfit', sans-serif; font-size: 15px;
+  cursor: pointer; padding: 8px 4px;
+}
+.editor-topbar .ed-cancel { color: var(--silver); }
+.editor-topbar .ed-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 16px; color: var(--cream); font-weight: 700;
+}
+.editor-topbar .ed-apply { color: var(--gold); font-weight: 600; }
+
+.editor-canvas-wrap {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  overflow: hidden; position: relative;
+  touch-action: none;
+}
+.editor-canvas-wrap canvas {
+  max-width: 100%; max-height: 100%;
+}
+
+/* Crop overlay */
+.crop-overlay {
+  position: absolute;
+  border: 2px solid var(--gold);
+  box-shadow: 0 0 0 9999px rgba(0,0,0,0.55);
+  cursor: move;
+  touch-action: none;
+}
+.crop-handle {
+  position: absolute;
+  width: 28px; height: 28px;
+  background: var(--gold);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  cursor: pointer;
+  touch-action: none;
+  z-index: 2;
+}
+.crop-handle::after {
+  content: '';
+  position: absolute; inset: 6px;
+  background: var(--midnight);
+  border-radius: 50%;
+}
+.crop-handle.tl { top: 0; left: 0; }
+.crop-handle.tr { top: 0; right: 0; transform: translate(50%, -50%); }
+.crop-handle.bl { bottom: 0; left: 0; transform: translate(-50%, 50%); }
+.crop-handle.br { bottom: 0; right: 0; transform: translate(50%, 50%); }
+
+.editor-toolbar {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 12px 16px;
+  border-top: 1px solid rgba(201,168,76,0.15);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+.ed-btn {
+  display: flex; align-items: center; gap: 5px;
+  background: var(--panel); border: 1px solid var(--ghost);
+  border-radius: 10px; padding: 10px 14px;
+  color: var(--cream); font-family: 'Outfit', sans-serif;
+  font-size: 13px; cursor: pointer;
+  transition: border-color 0.2s;
+}
+.ed-btn:active { border-color: var(--gold); }
+.ed-btn svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+.straighten-row {
+  width: 100%; display: flex; align-items: center; gap: 10px;
+  padding: 4px 0;
+}
+.straighten-row label {
+  font-size: 12px; color: var(--silver); white-space: nowrap;
+  font-family: 'JetBrains Mono', monospace;
+}
+.straighten-row input[type="range"] {
+  flex: 1; height: 4px;
+  -webkit-appearance: none; appearance: none;
+  background: var(--ghost); border-radius: 2px; outline: none;
+}
+.straighten-row input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: var(--gold); cursor: pointer;
+}
+.straighten-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px; color: var(--gold);
+  min-width: 40px; text-align: right;
+}
 </style>
 </head>
 <body>
@@ -1160,6 +1268,43 @@ html, body {
 <div class="spinner-overlay" id="spinner">
   <div class="spinner"></div>
   <p>Analyzing your card...</p>
+</div>
+
+<!-- ════════ PHOTO EDITOR ════════ -->
+<div class="editor-overlay" id="photo-editor">
+  <div class="editor-topbar">
+    <button class="ed-cancel" onclick="editorCancel()">Cancel</button>
+    <span class="ed-title">Edit Photo</span>
+    <button class="ed-apply" onclick="editorApply()">Done</button>
+  </div>
+  <div class="editor-canvas-wrap" id="editor-wrap">
+    <canvas id="editor-canvas"></canvas>
+    <div class="crop-overlay" id="crop-box">
+      <div class="crop-handle tl" data-corner="tl"></div>
+      <div class="crop-handle tr" data-corner="tr"></div>
+      <div class="crop-handle bl" data-corner="bl"></div>
+      <div class="crop-handle br" data-corner="br"></div>
+    </div>
+  </div>
+  <div class="editor-toolbar">
+    <button class="ed-btn" onclick="editorRotate(-90)">
+      <svg viewBox="0 0 24 24"><path d="M2.5 2v6h6M2.66 15.57a10 10 0 1 0 .57-8.38"/></svg>
+      90° L
+    </button>
+    <button class="ed-btn" onclick="editorRotate(90)">
+      <svg viewBox="0 0 24 24" style="transform:scaleX(-1)"><path d="M2.5 2v6h6M2.66 15.57a10 10 0 1 0 .57-8.38"/></svg>
+      90° R
+    </button>
+    <button class="ed-btn" onclick="editorResetCrop()">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M3 9h18"/></svg>
+      Reset
+    </button>
+    <div class="straighten-row">
+      <label>Straighten</label>
+      <input type="range" id="straighten-slider" min="-15" max="15" step="0.5" value="0" oninput="editorStraighten(this.value)">
+      <span class="straighten-val" id="straighten-val">0°</span>
+    </div>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -1780,153 +1925,197 @@ function handleFileSelect(e) {
   e.target.value = '';
 }
 
-function autoCropCardImage(dataUrl) {
-  return new Promise(resolve => {
-    const img = new Image();
-    img.onload = function() {
-      let canvas = document.createElement('canvas');
-      let ctx = canvas.getContext('2d');
+// ─── PHOTO EDITOR ───
+let editorImg = null;       // original Image object
+let editorSlot = null;      // 'front' or 'back'
+let editorRotation = 0;     // cumulative 90° rotations
+let editorStraightenDeg = 0;
+let cropBox = { x: 0, y: 0, w: 0, h: 0 }; // in canvas pixel coords
+let canvasRect = null;      // bounding rect of displayed canvas
+let dragging = null;        // null | 'move' | 'tl' | 'tr' | 'bl' | 'br'
+let dragStart = { x: 0, y: 0, cx: 0, cy: 0, cw: 0, ch: 0 };
 
-      const maxDim = 1200;
-      let w = img.width, h = img.height;
-      if (w > maxDim || h > maxDim) {
-        const scale = maxDim / Math.max(w, h);
-        w = Math.round(w * scale); h = Math.round(h * scale);
-      }
-      canvas.width = w; canvas.height = h;
-      ctx.drawImage(img, 0, 0, w, h);
+function openEditor(dataUrl, slot) {
+  editorSlot = slot;
+  editorRotation = 0;
+  editorStraightenDeg = 0;
+  document.getElementById('straighten-slider').value = 0;
+  document.getElementById('straighten-val').textContent = '0°';
 
-      // ── Step 1: Detect skew angle and straighten ──
-      let pixels = ctx.getImageData(0, 0, w, h).data;
-      let gray = new Float32Array(w * h);
-      for (let i = 0; i < w * h; i++) gray[i] = (pixels[i*4] + pixels[i*4+1] + pixels[i*4+2]) / 3;
-
-      // Compute gradient direction at strong edge pixels
-      const gx = new Float32Array(w * h);
-      const gy = new Float32Array(w * h);
-      for (let r = 1; r < h - 1; r++) {
-        for (let c = 1; c < w - 1; c++) {
-          gx[r*w+c] = gray[r*w+c+1] - gray[r*w+c-1];
-          gy[r*w+c] = gray[(r+1)*w+c] - gray[(r-1)*w+c];
-        }
-      }
-      const mag = new Float32Array(w * h);
-      for (let i = 0; i < w * h; i++) mag[i] = Math.sqrt(gx[i]*gx[i] + gy[i]*gy[i]);
-
-      // Get top 5% strongest edges
-      const sorted = Array.from(mag).sort((a, b) => b - a);
-      const magThresh = sorted[Math.floor(w * h * 0.05)] || 1;
-
-      // Collect angle deviations from cardinal directions
-      const devs = [];
-      for (let i = 0; i < w * h; i++) {
-        if (mag[i] < magThresh) continue;
-        let a = Math.atan2(gy[i], gx[i]) * 180 / Math.PI;
-        a = ((a % 180) + 180) % 180; // 0-180
-        const devH = Math.min(a, 180 - a);
-        const devV = Math.abs(a - 90);
-        const dev = Math.min(devH, devV);
-        if (dev < 10) {
-          devs.push(devH < devV ? (a < 90 ? a : a - 180) : (a - 90));
-        }
-      }
-
-      let skewAngle = 0;
-      if (devs.length > 100) {
-        devs.sort((a, b) => a - b);
-        skewAngle = devs[Math.floor(devs.length / 2)]; // median
-      }
-
-      // Apply straightening if skew > 0.3°
-      if (Math.abs(skewAngle) > 0.3 && Math.abs(skewAngle) < 15) {
-        const rad = skewAngle * Math.PI / 180;
-        const cos = Math.abs(Math.cos(rad)), sin = Math.abs(Math.sin(rad));
-        const nw = Math.round(w * cos + h * sin);
-        const nh = Math.round(w * sin + h * cos);
-        const c2 = document.createElement('canvas');
-        c2.width = nw; c2.height = nh;
-        const ctx2 = c2.getContext('2d');
-        ctx2.translate(nw / 2, nh / 2);
-        ctx2.rotate(rad);
-        ctx2.drawImage(canvas, -w / 2, -h / 2);
-        canvas = c2; ctx = ctx2; w = nw; h = nh;
-
-        // Recompute grayscale
-        pixels = canvas.getContext('2d').getImageData(0, 0, w, h).data;
-        gray = new Float32Array(w * h);
-        for (let i = 0; i < w * h; i++) gray[i] = (pixels[i*4] + pixels[i*4+1] + pixels[i*4+2]) / 3;
-      }
-
-      // ── Step 2: Gradient-based edge crop ──
-      const rowGrad = new Float32Array(h);
-      for (let r = 1; r < h - 1; r++) {
-        let sum = 0;
-        for (let c = 0; c < w; c++) sum += Math.abs(gray[(r+1)*w+c] - gray[(r-1)*w+c]);
-        rowGrad[r] = sum;
-      }
-      const colGrad = new Float32Array(w);
-      for (let c = 1; c < w - 1; c++) {
-        let sum = 0;
-        for (let r = 0; r < h; r++) sum += Math.abs(gray[r*w+c+1] - gray[r*w+c-1]);
-        colGrad[c] = sum;
-      }
-
-      let rMax = 0, cMax = 0;
-      for (let r = 0; r < h; r++) if (rowGrad[r] > rMax) rMax = rowGrad[r];
-      for (let c = 0; c < w; c++) if (colGrad[c] > cMax) cMax = colGrad[c];
-      if (rMax > 0) for (let r = 0; r < h; r++) rowGrad[r] /= rMax;
-      if (cMax > 0) for (let c = 0; c < w; c++) colGrad[c] /= cMax;
-
-      const gt = 0.25;
-      let top = 0, bottom = h - 1, left = 0, right = w - 1;
-      for (let r = 0; r < h / 3; r++) { if (rowGrad[r] > gt) { top = r; break; } }
-      for (let r = h - 1; r > h * 2 / 3; r--) { if (rowGrad[r] > gt) { bottom = r; break; } }
-      for (let c = 0; c < w / 3; c++) { if (colGrad[c] > gt) { left = c; break; } }
-      for (let c = w - 1; c > w * 2 / 3; c--) { if (colGrad[c] > gt) { right = c; break; } }
-
-      const pad = Math.round(Math.max(w, h) * 0.008);
-      top = Math.max(0, top - pad); left = Math.max(0, left - pad);
-      bottom = Math.min(h - 1, bottom + pad); right = Math.min(w - 1, right + pad);
-
-      const cw = right - left + 1, ch = bottom - top + 1;
-      if (cw < 50 || ch < 50) { resolve(dataUrl); return; }
-
-      // ── Step 3: Orientation + output ──
-      const outCanvas = document.createElement('canvas');
-      const outCtx = outCanvas.getContext('2d');
-      if (cw > ch * 1.15) {
-        outCanvas.width = ch; outCanvas.height = cw;
-        outCtx.translate(ch, 0); outCtx.rotate(Math.PI / 2);
-        outCtx.drawImage(canvas, left, top, cw, ch, 0, 0, cw, ch);
-      } else {
-        outCanvas.width = cw; outCanvas.height = ch;
-        outCtx.drawImage(canvas, left, top, cw, ch, 0, 0, cw, ch);
-      }
-
-      resolve(outCanvas.toDataURL('image/jpeg', 0.92));
-    };
-    img.src = dataUrl;
-  });
+  editorImg = new Image();
+  editorImg.onload = function() {
+    drawEditorCanvas();
+    document.getElementById('photo-editor').classList.add('visible');
+  };
+  editorImg.src = dataUrl;
 }
+
+function drawEditorCanvas() {
+  const canvas = document.getElementById('editor-canvas');
+  const ctx = canvas.getContext('2d');
+  const wrap = document.getElementById('editor-wrap');
+
+  let iw = editorImg.width, ih = editorImg.height;
+
+  // Apply 90° rotation to dimensions
+  const is90 = (editorRotation % 180) !== 0;
+  let dw = is90 ? ih : iw;
+  let dh = is90 ? iw : ih;
+
+  // Straighten adds a bit of size
+  const sRad = editorStraightenDeg * Math.PI / 180;
+  const cos = Math.abs(Math.cos(sRad)), sin = Math.abs(Math.sin(sRad));
+  const sw = Math.round(dw * cos + dh * sin);
+  const sh = Math.round(dw * sin + dh * cos);
+
+  // Scale to fit the wrap area
+  const maxW = wrap.clientWidth - 20;
+  const maxH = wrap.clientHeight - 20;
+  const scale = Math.min(1, maxW / sw, maxH / sh);
+
+  canvas.width = Math.round(sw * scale);
+  canvas.height = Math.round(sh * scale);
+
+  ctx.save();
+  ctx.translate(canvas.width / 2, canvas.height / 2);
+  ctx.rotate((editorRotation * Math.PI / 180) + sRad);
+  ctx.scale(scale, scale);
+  ctx.drawImage(editorImg, -iw / 2, -ih / 2);
+  ctx.restore();
+
+  // Reset crop box to full canvas
+  editorResetCrop();
+}
+
+function editorResetCrop() {
+  const canvas = document.getElementById('editor-canvas');
+  const pad = 8;
+  cropBox = { x: pad, y: pad, w: canvas.width - pad * 2, h: canvas.height - pad * 2 };
+  updateCropUI();
+}
+
+function updateCropUI() {
+  const canvas = document.getElementById('editor-canvas');
+  const cr = canvas.getBoundingClientRect();
+  const box = document.getElementById('crop-box');
+  canvasRect = cr;
+
+  box.style.left = (cr.left + cropBox.x) + 'px';
+  box.style.top = (cr.top + cropBox.y) + 'px';
+  box.style.width = cropBox.w + 'px';
+  box.style.height = cropBox.h + 'px';
+}
+
+function editorRotate(deg) {
+  editorRotation = (editorRotation + deg + 360) % 360;
+  drawEditorCanvas();
+}
+
+function editorStraighten(val) {
+  editorStraightenDeg = parseFloat(val);
+  document.getElementById('straighten-val').textContent = val + '°';
+  drawEditorCanvas();
+}
+
+function editorCancel() {
+  document.getElementById('photo-editor').classList.remove('visible');
+}
+
+function editorApply() {
+  // Extract the cropped region from the canvas
+  const canvas = document.getElementById('editor-canvas');
+  const outCanvas = document.createElement('canvas');
+  outCanvas.width = Math.round(cropBox.w);
+  outCanvas.height = Math.round(cropBox.h);
+  const outCtx = outCanvas.getContext('2d');
+  outCtx.drawImage(canvas, cropBox.x, cropBox.y, cropBox.w, cropBox.h, 0, 0, cropBox.w, cropBox.h);
+
+  const data = outCanvas.toDataURL('image/jpeg', 0.92);
+
+  if (editorSlot === 'front') {
+    pendingFrontData = data;
+    document.getElementById('front-preview').src = data;
+    document.getElementById('front-preview').style.display = 'block';
+    document.getElementById('front-slot').classList.add('has-img');
+  } else {
+    pendingBackData = data;
+    document.getElementById('back-preview').src = data;
+    document.getElementById('back-preview').style.display = 'block';
+    document.getElementById('back-slot').classList.add('has-img');
+  }
+  updateAnalyzeBtn();
+  document.getElementById('photo-editor').classList.remove('visible');
+}
+
+// Crop drag handling
+function getPointerPos(e) {
+  const t = e.touches ? e.touches[0] : e;
+  return { x: t.clientX, y: t.clientY };
+}
+
+document.getElementById('crop-box').addEventListener('pointerdown', function(e) {
+  e.preventDefault();
+  const corner = e.target.dataset?.corner;
+  dragging = corner || 'move';
+  const pos = getPointerPos(e);
+  dragStart = { x: pos.x, y: pos.y, cx: cropBox.x, cy: cropBox.y, cw: cropBox.w, ch: cropBox.h };
+  document.addEventListener('pointermove', onCropDrag);
+  document.addEventListener('pointerup', onCropUp);
+});
+
+function onCropDrag(e) {
+  e.preventDefault();
+  if (!dragging) return;
+  const pos = getPointerPos(e);
+  const dx = pos.x - dragStart.x;
+  const dy = pos.y - dragStart.y;
+  const canvas = document.getElementById('editor-canvas');
+  const cw = canvas.width, ch = canvas.height;
+  const minS = 40;
+
+  if (dragging === 'move') {
+    cropBox.x = Math.max(0, Math.min(cw - cropBox.w, dragStart.cx + dx));
+    cropBox.y = Math.max(0, Math.min(ch - cropBox.h, dragStart.cy + dy));
+  } else if (dragging === 'tl') {
+    const nx = Math.max(0, Math.min(dragStart.cx + dragStart.cw - minS, dragStart.cx + dx));
+    const ny = Math.max(0, Math.min(dragStart.cy + dragStart.ch - minS, dragStart.cy + dy));
+    cropBox.w = dragStart.cw + (dragStart.cx - nx);
+    cropBox.h = dragStart.ch + (dragStart.cy - ny);
+    cropBox.x = nx; cropBox.y = ny;
+  } else if (dragging === 'tr') {
+    cropBox.w = Math.max(minS, Math.min(cw - dragStart.cx, dragStart.cw + dx));
+    const ny = Math.max(0, Math.min(dragStart.cy + dragStart.ch - minS, dragStart.cy + dy));
+    cropBox.h = dragStart.ch + (dragStart.cy - ny);
+    cropBox.y = ny;
+  } else if (dragging === 'bl') {
+    const nx = Math.max(0, Math.min(dragStart.cx + dragStart.cw - minS, dragStart.cx + dx));
+    cropBox.w = dragStart.cw + (dragStart.cx - nx);
+    cropBox.x = nx;
+    cropBox.h = Math.max(minS, Math.min(ch - dragStart.cy, dragStart.ch + dy));
+  } else if (dragging === 'br') {
+    cropBox.w = Math.max(minS, Math.min(cw - dragStart.cx, dragStart.cw + dx));
+    cropBox.h = Math.max(minS, Math.min(ch - dragStart.cy, dragStart.ch + dy));
+  }
+  updateCropUI();
+}
+
+function onCropUp() {
+  dragging = null;
+  document.removeEventListener('pointermove', onCropDrag);
+  document.removeEventListener('pointerup', onCropUp);
+}
+
+// Reposition crop overlay on resize
+window.addEventListener('resize', () => {
+  if (document.getElementById('photo-editor').classList.contains('visible')) {
+    drawEditorCanvas();
+  }
+});
 
 function loadImageFile(file, slot) {
   const reader = new FileReader();
-  reader.onload = async function(e) {
-    const rawData = e.target.result;
-    // Auto-crop to card boundaries
-    const data = await autoCropCardImage(rawData);
-    if (slot === 'front') {
-      pendingFrontData = data;
-      document.getElementById('front-preview').src = data;
-      document.getElementById('front-preview').style.display = 'block';
-      document.getElementById('front-slot').classList.add('has-img');
-    } else {
-      pendingBackData = data;
-      document.getElementById('back-preview').src = data;
-      document.getElementById('back-preview').style.display = 'block';
-      document.getElementById('back-slot').classList.add('has-img');
-    }
-    updateAnalyzeBtn();
+  reader.onload = function(e) {
+    openEditor(e.target.result, slot);
   };
   reader.readAsDataURL(file);
 }
