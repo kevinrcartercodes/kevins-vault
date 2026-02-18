@@ -1164,6 +1164,7 @@ html, body {
 
 <div class="toast" id="toast"></div>
 
+<script src="config.local.js" onerror=""></script>
 <script>
 // ─── DATA STORE ───
 const STORAGE_KEY = 'vault_cards';
@@ -1176,7 +1177,7 @@ function loadCards() {
 function saveCards(cards) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(cards));
 }
-function getApiKey() { return localStorage.getItem(API_KEY_KEY) || ''; }
+function getApiKey() { return localStorage.getItem(API_KEY_KEY) || window.VAULT_API_KEY || ''; }
 function setApiKey(k) { localStorage.setItem(API_KEY_KEY, k); }
 
 // ─── HOF MASTER LIST ───
