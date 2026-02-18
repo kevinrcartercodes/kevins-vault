@@ -2032,7 +2032,16 @@ async function analyzeCard() {
   "hof": "yes if player is in the Baseball Hall of Fame, no if not yet",
   "value": "Estimated market value in USD (e.g. $80)"
 }
-Be precise about the year, set name, and card number. Check the back of the card for details. For value, consider the player, rarity (serial numbering), autograph, grade/condition, and Hall of Fame status. Graded cards (especially PSA 10, BGS 9.5+) command significant premiums over raw cards — factor this into your value estimate. Return ONLY the JSON, no other text.`
+Be precise about the year, set name, and card number. Check the back of the card for details.
+
+For value estimation, consider these factors in order of impact:
+1. **Print run / serial numbering** — this is critical. Lower print runs command exponentially higher prices. A /10 is typically worth ~2x a /25, and a /5 can be 3-4x a /25. A 1/1 is in a class of its own. Do NOT treat /10 and /25 as similar.
+2. **Player significance** — Hall of Famers, all-time greats, and top prospects command premiums.
+3. **Grade** — PSA 10 and BGS 9.5+ add significant premiums over raw cards. A PSA 10 can be worth 2-3x a raw card. PSA 9 is still a premium but less than 10.
+4. **Autograph** — on-card autos are worth more than sticker autos; both add value over non-auto parallels.
+5. **Set prestige** — Museum Collection, Transcendent, Sterling, Definitive, etc. command premiums over base Topps/Bowman.
+
+Return ONLY the JSON, no other text.`
             }
           ]
         }]
