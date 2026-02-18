@@ -1148,7 +1148,7 @@ html, body {
 <div class="modal-overlay" id="api-modal">
   <div class="modal">
     <h3>Anthropic API Key</h3>
-    <p>Enter your Claude API key to enable card analysis. Your key is stored locally and never sent anywhere else.</p>
+    <p>One-time setup: enter your Claude API key to enable card scanning. It's saved on this device only and never sent anywhere else.</p>
     <input type="password" id="api-key-input" placeholder="sk-ant-api03-...">
     <div class="modal-btns">
       <button class="btn-cancel" onclick="closeApiModal()">Cancel</button>
@@ -2120,7 +2120,11 @@ function saveApiKey() {
   const key = document.getElementById('api-key-input').value.trim();
   setApiKey(key);
   closeApiModal();
-  toast(key ? 'API key saved' : 'API key cleared');
+  toast(key ? 'API key saved — you won\'t be asked again on this device' : 'API key cleared');
+  // Auto-retry analysis if images are ready
+  if (key && pendingFrontData && pendingBackData) {
+    setTimeout(() => analyzeCard(), 300);
+  }
 }
 
 // ─── TOAST ───
