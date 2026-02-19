@@ -1289,7 +1289,7 @@ const API_KEY_KEY = 'vault_api_key';
 let currentVault = localStorage.getItem('vault_current') || 'kevin';
 
 function vaultParam() { return 'vault=' + encodeURIComponent(currentVault); }
-function vaultDisplayName(v) { return v.charAt(0).toUpperCase() + v.slice(1) + "'s"; }
+function vaultDisplayName(v) { const name = v.charAt(0).toUpperCase() + v.slice(1); return name + (name.endsWith('s') ? "'" : "'s"); }
 
 function loadCards() {
   // Return cached cards (fetched async on init)
