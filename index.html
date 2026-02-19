@@ -1669,7 +1669,7 @@ function renderHome() {
 
   document.getElementById('stat-total').textContent = cards.length;
   const hofAutoPlayers = new Set(cards.filter(c => c.hof === 'yes' && c.autograph === 'yes').map(c => c.player.toLowerCase()));
-  document.getElementById('stat-hof').textContent = hofAutoPlayers.size + ' / ' + HOF_PLAYERS.length;
+  document.getElementById('stat-hof').innerHTML = hofAutoPlayers.size + '<span style="font-size:16px;color:var(--silver);font-weight:400"> / ' + HOF_PLAYERS.length + '</span>';
   const totalVal = cards.reduce((sum, c) => {
     const v = parseFloat((c.value || '').replace(/[^0-9.]/g, ''));
     return sum + (isNaN(v) ? 0 : v);
