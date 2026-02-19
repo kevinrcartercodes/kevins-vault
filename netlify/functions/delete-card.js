@@ -1,4 +1,4 @@
-async function readCards(gistId, token) {
+async function readCards(gistId, token, filename) {
   const resp = await fetch(`https://api.github.com/gists/${gistId}`, {
     headers: {
       'Authorization': `token ${token}`,
@@ -6,15 +6,17 @@ async function readCards(gistId, token) {
     },
   });
   const gist = await resp.json();
-  const file = gist.files?.['cards.json'];
+  const file = gist.files?.[filename];
 
-  if (file?.truncated) {
+  if (!file) return [];
+
+  if (file.truncated) {
     const rawResp = await fetch(file.raw_url, {
       headers: { 'Authorization': `token ${token}` },
     });
     return JSON.parse(await rawResp.text());
   }
-  return JSON.parse(file?.content || '[]');
+  return JSON.parse(file.content || '[]');
 }
 
 exports.handler = async (event) => {
@@ -27,10 +29,12 @@ exports.handler = async (event) => {
 
   const gistId = process.env.GIST_ID;
   const token = process.env.GITHUB_TOKEN;
+  const vault = (event.queryStringParameters?.vault || 'kevin').toLowerCase().replace(/[^a-z0-9-]/g, '');
+  const filename = vault === 'kevin' ? 'cards.json' : `cards-${vault}.json`;
 
   try {
     const { cardId } = JSON.parse(event.body);
-    let cards = await readCards(gistId, token);
+    let cards = await readCards(gistId, token, filename);
 
     // Remove card
     cards = cards.filter(c => c.id !== cardId);
@@ -44,7 +48,7 @@ exports.handler = async (event) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        files: { 'cards.json': { content: JSON.stringify(cards) } }
+        files: { [filename]: { content: JSON.stringify(cards) } }
       }),
     });
 

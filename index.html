@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>Kevin's Vault — Baseball Card Collection</title>
+<title>The Vault — Baseball Card Collection</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=JetBrains+Mono:wght@300;400;500&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -99,6 +99,32 @@ html, body {
   font-size: 22px; cursor: pointer; padding: 8px;
 }
 .top-bar .action-btn:active { opacity: 0.5; }
+
+/* ─── VAULT SELECTOR ─── */
+.vault-selector-wrap { position: relative; }
+#vault-selector-btn {
+  display: flex; align-items: center;
+  font-family: 'Outfit', sans-serif; font-size: 14px;
+}
+.vault-menu {
+  display: none; position: absolute; right: 0; top: 100%;
+  background: var(--card-bg); border: 1px solid rgba(201,168,76,0.25);
+  border-radius: 10px; min-width: 160px; z-index: 1000;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  overflow: hidden; margin-top: 4px;
+}
+.vault-menu.open { display: block; }
+.vault-menu-item {
+  display: block; width: 100%; padding: 12px 16px;
+  background: none; border: none; color: var(--silver);
+  font-family: 'Outfit', sans-serif; font-size: 14px;
+  text-align: left; cursor: pointer;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.vault-menu-item:last-child { border-bottom: none; }
+.vault-menu-item:hover { background: rgba(201,168,76,0.1); }
+.vault-menu-item.active { color: var(--gold); font-weight: 600; }
+.vault-menu-item.new-vault { color: var(--gold); }
 
 /* ─── BOTTOM NAV ─── */
 .bottom-nav {
@@ -878,12 +904,21 @@ html, body {
 <!-- ════════ HOME SCREEN ════════ -->
 <div id="home-screen" class="screen active">
   <div class="top-bar">
-    <h1>KEVIN'S VAULT</h1>
-    <button class="action-btn" onclick="showApiKeyModal()" title="Settings">⚙</button>
+    <h1>THE VAULT</h1>
+    <div style="display:flex;align-items:center;gap:4px">
+      <div class="vault-selector-wrap">
+        <button class="action-btn" id="vault-selector-btn" onclick="toggleVaultMenu()" title="Select Vault">
+          <span id="vault-selector-label">Kevin's</span>
+          <span style="font-size:12px;margin-left:2px">▾</span>
+        </button>
+        <div class="vault-menu" id="vault-menu"></div>
+      </div>
+      <button class="action-btn" onclick="showApiKeyModal()" title="Settings">⚙</button>
+    </div>
   </div>
   <div class="scroll-content" id="home-scroll">
     <div class="home-hero animate-in">
-      <h2>My Collection</h2>
+      <h2 id="collection-title">Kevin's Collection</h2>
       <p>Hall of Fame Autographs</p>
     </div>
     <div class="stats-row animate-in delay-1">
@@ -893,7 +928,7 @@ html, body {
       </div>
       <div class="stat-box">
         <div class="num" id="stat-hof">0</div>
-        <div class="label">HoF</div>
+        <div class="label">HOF Autos</div>
       </div>
       <div class="stat-box">
         <div class="num" id="stat-value">$0</div>
@@ -1238,6 +1273,10 @@ html, body {
 // ─── DATA STORE ───
 const STORAGE_KEY = 'vault_cards';
 const API_KEY_KEY = 'vault_api_key';
+let currentVault = localStorage.getItem('vault_current') || 'kevin';
+
+function vaultParam() { return 'vault=' + encodeURIComponent(currentVault); }
+function vaultDisplayName(v) { return v.charAt(0).toUpperCase() + v.slice(1) + "'s"; }
 
 function loadCards() {
   // Return cached cards (fetched async on init)
@@ -1246,7 +1285,7 @@ function loadCards() {
 
 async function fetchCards() {
   try {
-    const resp = await fetch('/.netlify/functions/get-cards');
+    const resp = await fetch('/.netlify/functions/get-cards?' + vaultParam());
     const data = await resp.json();
     window._cardsCache = Array.isArray(data) ? data : [];
   } catch (e) {
@@ -2332,7 +2371,7 @@ async function saveCard() {
   };
 
   try {
-    const resp = await fetch('/.netlify/functions/save-card', {
+    const resp = await fetch('/.netlify/functions/save-card?' + vaultParam(), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newCard),
@@ -2398,7 +2437,7 @@ async function saveEditedCard() {
   cards[idx].value = document.getElementById('edit-value').value;
 
   try {
-    const resp = await fetch('/.netlify/functions/save-card', {
+    const resp = await fetch('/.netlify/functions/save-card?' + vaultParam(), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(cards[idx]),
@@ -2417,7 +2456,7 @@ async function saveEditedCard() {
 async function deleteCurrentCard() {
   if (!confirm('Remove this card from your collection?')) return;
   try {
-    const resp = await fetch('/.netlify/functions/delete-card', {
+    const resp = await fetch('/.netlify/functions/delete-card?' + vaultParam(), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ cardId: editingCardId }),
@@ -2459,8 +2498,74 @@ function toast(msg, isError) {
   setTimeout(() => el.classList.remove('show'), 2500);
 }
 
+// ─── VAULT SELECTOR ───
+function toggleVaultMenu() {
+  document.getElementById('vault-menu').classList.toggle('open');
+}
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.vault-selector-wrap')) {
+    document.getElementById('vault-menu').classList.remove('open');
+  }
+});
+
+async function loadVaultList() {
+  try {
+    const resp = await fetch('/.netlify/functions/list-vaults');
+    const vaults = await resp.json();
+    renderVaultMenu(vaults);
+  } catch (e) {
+    renderVaultMenu(['kevin']);
+  }
+}
+
+function renderVaultMenu(vaults) {
+  const menu = document.getElementById('vault-menu');
+  menu.innerHTML = vaults.map(v =>
+    `<button class="vault-menu-item ${v === currentVault ? 'active' : ''}" onclick="switchVault('${v}')">${vaultDisplayName(v)}</button>`
+  ).join('') +
+  `<button class="vault-menu-item new-vault" onclick="createNewVault()">+ New Vault</button>`;
+}
+
+async function switchVault(vault) {
+  currentVault = vault;
+  localStorage.setItem('vault_current', vault);
+  document.getElementById('vault-menu').classList.remove('open');
+  document.getElementById('vault-selector-label').textContent = vaultDisplayName(vault);
+  document.getElementById('collection-title').textContent = vaultDisplayName(vault) + ' Collection';
+  await fetchCards();
+  renderHome();
+}
+
+async function createNewVault() {
+  document.getElementById('vault-menu').classList.remove('open');
+  const name = prompt('Enter a name for the new vault (e.g., your first name):');
+  if (!name) return;
+  const slug = name.toLowerCase().replace(/[^a-z0-9-]/g, '');
+  if (!slug || slug.length < 2) { alert('Name must be at least 2 letters.'); return; }
+  try {
+    const resp = await fetch('/.netlify/functions/create-vault', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: slug }),
+    });
+    const data = await resp.json();
+    if (!resp.ok) { alert(data.error || 'Failed to create vault'); return; }
+    await loadVaultList();
+    switchVault(slug);
+  } catch (e) {
+    alert('Error creating vault: ' + e.message);
+  }
+}
+
+function updateVaultUI() {
+  document.getElementById('vault-selector-label').textContent = vaultDisplayName(currentVault);
+  document.getElementById('collection-title').textContent = vaultDisplayName(currentVault) + ' Collection';
+}
+
 // ─── INIT ───
 // Fetch cards from server, then render
+updateVaultUI();
+loadVaultList();
 fetchCards().then(function() { renderHome(); });
 
 // Drag & drop on scan zone
