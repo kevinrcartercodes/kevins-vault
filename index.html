@@ -201,6 +201,15 @@ html, body {
   font-size: 13px; color: var(--gold); background: none; border: none;
   cursor: pointer; font-family: 'Outfit', sans-serif;
 }
+.section-header.collapsible { cursor: pointer; }
+.section-header .section-chevron {
+  color: var(--silver); font-size: 14px;
+  transition: transform 0.3s;
+}
+.section-header.collapsed .section-chevron { transform: rotate(-90deg); }
+.section-header:not(.collapsed) .section-chevron { transform: rotate(0deg); }
+.section-body { overflow: hidden; }
+.section-body.collapsed { display: none; }
 
 /* ─── YEAR GROUPS ─── */
 .year-group {
@@ -446,16 +455,17 @@ html, body {
 }
 /* ─── SHOWCASE SECTION ─── */
 .section-header.showcase-header h3 {
-  color: #c39bdf;
+  color: var(--cream);
 }
-.showcase-section .year-group {
-  border-color: rgba(155,89,182,0.2);
-}
-.showcase-section .year-group-header {
-  background: rgba(155,89,182,0.08);
-}
-.showcase-section .year-group-header .year {
-  color: #c39bdf;
+.showcase-section {
+  margin: 0 16px 16px;
+  background: rgba(255,255,255,0.04);
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.08);
+  padding: 8px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 8px;
 }
 #viewer-grade-badge {
   margin: 6px 0 2px;
@@ -976,20 +986,22 @@ html, body {
       </div>
     </div>
 
-    <div class="section-header showcase-header animate-in delay-2" id="showcase-section-header" style="display:none;">
+    <div class="section-header showcase-header animate-in delay-2">
       <h3>Showcase</h3>
     </div>
     <div id="showcase-cards" class="showcase-section"></div>
 
-    <div class="section-header animate-in delay-2">
+    <div class="section-header collapsible animate-in delay-2" onclick="toggleSection(this, 'hof-year-groups')">
       <h3>Hall of Fame</h3>
+      <span class="section-chevron">▼</span>
     </div>
-    <div id="hof-year-groups"></div>
+    <div id="hof-year-groups" class="section-body collapsed"></div>
 
-    <div class="section-header animate-in delay-3">
+    <div class="section-header collapsible animate-in delay-3" onclick="toggleSection(this, 'other-year-groups')">
       <h3>Other Cards</h3>
+      <span class="section-chevron">▼</span>
     </div>
-    <div id="other-year-groups"></div>
+    <div id="other-year-groups" class="section-body collapsed"></div>
   </div>
 
   <div class="bottom-nav">
@@ -1787,29 +1799,27 @@ function renderHome() {
   }, 0);
   document.getElementById('stat-value').textContent = '$' + totalVal.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0});
 
-  // Showcase section — only show if there are showcase cards
-  const showcaseHeader = document.getElementById('showcase-section-header');
-  if (showcaseCards.length > 0) {
-    showcaseHeader.style.display = '';
-    renderShowcase('showcase-cards', showcaseCards);
-  } else {
-    showcaseHeader.style.display = 'none';
-    document.getElementById('showcase-cards').innerHTML = '';
-  }
+  // Showcase section — always visible
+  renderShowcase('showcase-cards', showcaseCards);
 
   renderYearGroups('hof-year-groups', hofCards, 'hof');
   renderYearGroups('other-year-groups', otherCards, 'other');
 }
 
+function toggleSection(headerEl, bodyId) {
+  headerEl.classList.toggle('collapsed');
+  document.getElementById(bodyId).classList.toggle('collapsed');
+}
+
 function renderShowcase(containerId, cardList) {
   const container = document.getElementById(containerId);
-  if (cardList.length === 0) { container.innerHTML = ''; return; }
-  container.innerHTML = `
-    <div class="year-group open">
-      <div class="year-group-cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));">
-        ${cardList.map(card => renderCardThumb(card)).join('')}
-      </div>
-    </div>`;
+  if (cardList.length === 0) {
+    container.style.display = 'block';
+    container.innerHTML = '<div style="padding:16px 8px;text-align:center;color:var(--silver);font-size:13px;">Edit a card and set Showcase to &ldquo;Yes&rdquo; to feature it here</div>';
+    return;
+  }
+  container.style.display = '';
+  container.innerHTML = cardList.map(card => renderCardThumb(card)).join('');
 }
 
 function renderCardThumb(card) {
