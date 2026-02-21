@@ -103,23 +103,25 @@ html, body {
 
 /* ─── GLOBAL SEARCH ─── */
 .top-bar-search {
-  flex: 1;
-  margin: 0 10px;
-  position: relative;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 30%;
+  min-width: 100px;
 }
 .top-bar-search input {
   width: 100%;
-  background: var(--ghost);
-  border: 1px solid rgba(201,168,76,0.15);
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
   border-radius: 20px;
-  padding: 6px 14px;
+  padding: 5px 12px;
   color: var(--cream);
   font-family: 'Outfit', sans-serif;
-  font-size: 13px;
+  font-size: 12px;
   outline: none;
 }
 .top-bar-search input::placeholder { color: var(--silver); }
-.top-bar-search input:focus { border-color: var(--gold); }
+.top-bar-search input:focus { border-color: rgba(255,255,255,0.2); }
 .search-results-overlay {
   display: none;
   position: absolute;
