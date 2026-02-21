@@ -1,3 +1,5 @@
+const zlib = require('zlib');
+
 exports.handler = async (event) => {
   const gistId = process.env.GIST_ID;
   const token = process.env.GITHUB_TOKEN;
@@ -32,10 +34,18 @@ exports.handler = async (event) => {
       content = file.content || '[]';
     }
 
+    // Gzip compress to stay under Netlify's 6MB response limit
+    const compressed = zlib.gzipSync(Buffer.from(content, 'utf-8'));
+
     return {
       statusCode: 200,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-      body: content,
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Encoding': 'gzip',
+        'Access-Control-Allow-Origin': '*',
+      },
+      body: compressed.toString('base64'),
+      isBase64Encoded: true,
     };
   } catch (err) {
     return {
