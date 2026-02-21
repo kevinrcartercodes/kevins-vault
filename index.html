@@ -1816,7 +1816,8 @@ function buildCompsUrl(card) {
 }
 
 async function rerateFromComps(e) {
-  // Let the link open in a new tab as normal, then re-rate in background
+  e.preventDefault();
+  const url = e.currentTarget.href;
   const card = viewerCards[viewerIndex];
   if (!card) return;
 
@@ -1850,19 +1851,24 @@ async function rerateFromComps(e) {
       if (idx >= 0) {
         cards[idx].value = newValue;
         saveCards(cards);
-        fetch('/.netlify/functions/save-card?' + vaultParam(), {
+        await fetch('/.netlify/functions/save-card?' + vaultParam(), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(cards[idx]),
         });
       }
+      toast('Updated to ' + newValue);
     } else {
       valueEl.textContent = oldValue;
       toast('No sold comps found');
     }
   } catch (err) {
     valueEl.textContent = oldValue;
+    toast('Price check failed', true);
   }
+
+  // Open eBay sold listings after price check completes
+  window.open(url, '_blank');
 }
 
 function renderViewerCard() {
