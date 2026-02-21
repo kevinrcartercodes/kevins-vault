@@ -996,7 +996,7 @@ html, body {
       <div id="viewer-grade-badge"></div>
       <div class="card-value-row">
         <span class="card-value" id="viewer-value"></span>
-        <a class="comps-link" id="viewer-comps" href="#" target="_blank" rel="noopener">
+        <a class="comps-link" id="viewer-comps" href="#" target="_blank" rel="noopener" onclick="rerateFromComps(event)">
           <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
           View comps
         </a>
@@ -1813,6 +1813,56 @@ function buildCompsUrl(card) {
   const query = parts.join(' ');
   return 'https://www.ebay.com/sch/i.html?_nkw=' + encodeURIComponent(query)
     + '&LH_Complete=1&LH_Sold=1&_sacat=212';  // 212 = Sports Trading Cards
+}
+
+async function rerateFromComps(e) {
+  // Let the link open in a new tab as normal, then re-rate in background
+  const card = viewerCards[viewerIndex];
+  if (!card) return;
+
+  const valueEl = document.getElementById('viewer-value');
+  const oldValue = valueEl.textContent;
+  valueEl.textContent = 'Checking...';
+
+  try {
+    const resp = await fetch('/.netlify/functions/price-check', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        player: card.player,
+        year: card.year,
+        set: card.set,
+        subset: card.subset,
+        serial: card.serial,
+        autograph: card.autograph,
+        grade: card.grade,
+      }),
+    });
+    if (!resp.ok) throw new Error('Price check failed');
+    const data = await resp.json();
+    if (data.found && data.median > 0) {
+      const newValue = '$' + data.median.toLocaleString();
+      valueEl.textContent = newValue;
+      // Persist updated value
+      card.value = newValue;
+      const cards = loadCards();
+      const idx = cards.findIndex(c => c.id === card.id);
+      if (idx >= 0) {
+        cards[idx].value = newValue;
+        saveCards(cards);
+        fetch('/.netlify/functions/save-card?' + vaultParam(), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(cards[idx]),
+        });
+      }
+    } else {
+      valueEl.textContent = oldValue;
+      toast('No sold comps found');
+    }
+  } catch (err) {
+    valueEl.textContent = oldValue;
+  }
 }
 
 function renderViewerCard() {
