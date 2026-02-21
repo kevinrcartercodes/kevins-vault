@@ -268,6 +268,22 @@ html, body {
   margin-left: 3px;
   font-size: 9px;
 }
+.card-thumb.future-star .thumb-label::after {
+  content: '★';
+  color: #4a9eff;
+  margin-left: 3px;
+  font-size: 9px;
+}
+.card-thumb .thumb-showcase {
+  position: absolute; top: 4px; left: 4px;
+  background: linear-gradient(135deg, #9b59b6, #8e44ad);
+  color: #fff;
+  font-size: 7px; font-weight: 700;
+  padding: 1px 4px; border-radius: 3px;
+  letter-spacing: 0.3px;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
 .card-thumb .thumb-grade {
   position: absolute; top: 4px; right: 4px;
   background: linear-gradient(135deg, #1a6bff, #00c6ff);
@@ -417,6 +433,29 @@ html, body {
   text-transform: uppercase;
   letter-spacing: 1px;
   margin-top: 6px;
+}
+.viewer-info .future-star-badge {
+  display: inline-block;
+  background: linear-gradient(135deg, #2a6bcc, #4a9eff);
+  color: #fff;
+  font-size: 10px; font-weight: 700;
+  padding: 2px 8px; border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-top: 6px;
+}
+/* ─── SHOWCASE SECTION ─── */
+.section-header.showcase-header h3 {
+  color: #c39bdf;
+}
+.showcase-section .year-group {
+  border-color: rgba(155,89,182,0.2);
+}
+.showcase-section .year-group-header {
+  background: rgba(155,89,182,0.08);
+}
+.showcase-section .year-group-header .year {
+  color: #c39bdf;
 }
 #viewer-grade-badge {
   margin: 6px 0 2px;
@@ -937,13 +976,18 @@ html, body {
       </div>
     </div>
 
+    <div class="section-header showcase-header animate-in delay-2" id="showcase-section-header" style="display:none;">
+      <h3>Showcase</h3>
+    </div>
+    <div id="showcase-cards" class="showcase-section"></div>
+
     <div class="section-header animate-in delay-2">
       <h3>Hall of Fame</h3>
     </div>
     <div id="hof-year-groups"></div>
 
     <div class="section-header animate-in delay-3">
-      <h3>Future Stars</h3>
+      <h3>Other Cards</h3>
     </div>
     <div id="other-year-groups"></div>
   </div>
@@ -1235,6 +1279,14 @@ html, body {
       <div class="result-field">
         <label>Hall of Fame</label>
         <select id="edit-hof"><option value="yes">Yes — Inducted</option><option value="no">Not Yet</option></select>
+      </div>
+      <div class="result-field">
+        <label>Future Star</label>
+        <select id="edit-future-star"><option value="no">No</option><option value="yes">Yes — Prospect to Watch</option></select>
+      </div>
+      <div class="result-field">
+        <label>Showcase</label>
+        <select id="edit-showcase"><option value="no">No</option><option value="yes">Yes — Feature in Showcase</option></select>
       </div>
       <div class="result-field">
         <label>Estimated Value</label>
@@ -1721,6 +1773,7 @@ function renderHome() {
   });
   if (changed) saveCards(cards);
 
+  const showcaseCards = cards.filter(c => c.showcase === 'yes');
   const hofCards = cards.filter(c => c.hof === 'yes');
   const otherCards = cards.filter(c => c.hof !== 'yes');
 
@@ -1734,11 +1787,47 @@ function renderHome() {
   }, 0);
   document.getElementById('stat-value').textContent = '$' + totalVal.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0});
 
-  renderYearGroups('hof-year-groups', hofCards, true);
-  renderYearGroups('other-year-groups', otherCards, false);
+  // Showcase section — only show if there are showcase cards
+  const showcaseHeader = document.getElementById('showcase-section-header');
+  if (showcaseCards.length > 0) {
+    showcaseHeader.style.display = '';
+    renderShowcase('showcase-cards', showcaseCards);
+  } else {
+    showcaseHeader.style.display = 'none';
+    document.getElementById('showcase-cards').innerHTML = '';
+  }
+
+  renderYearGroups('hof-year-groups', hofCards, 'hof');
+  renderYearGroups('other-year-groups', otherCards, 'other');
 }
 
-function renderYearGroups(containerId, cardList, isHof) {
+function renderShowcase(containerId, cardList) {
+  const container = document.getElementById(containerId);
+  if (cardList.length === 0) { container.innerHTML = ''; return; }
+  container.innerHTML = `
+    <div class="year-group open">
+      <div class="year-group-cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));">
+        ${cardList.map(card => renderCardThumb(card)).join('')}
+      </div>
+    </div>`;
+}
+
+function renderCardThumb(card) {
+  const classes = ['card-thumb'];
+  if (card.hof === 'yes') classes.push('hof');
+  if (card.futureStar === 'yes') classes.push('future-star');
+  return `
+    <div class="${classes.join(' ')}" onclick="openViewer('${card.id}')">
+      <img src="${card.frontImg}" alt="${card.player}" loading="lazy"
+        onerror="this.style.display='none'">
+      ${card.showcase === 'yes' ? '<div class="thumb-showcase">SC</div>' : ''}
+      ${card.grade ? '<div class="thumb-grade">' + card.grade + '</div>' : ''}
+      <div class="thumb-label">${card.player}</div>
+    </div>`;
+}
+
+function renderYearGroups(containerId, cardList, mode) {
+  const isHof = mode === 'hof';
   const container = document.getElementById(containerId);
   if (cardList.length === 0) {
     container.innerHTML = `
@@ -1752,7 +1841,6 @@ function renderYearGroups(containerId, cardList, isHof) {
 
   const byYear = {};
   cardList.forEach(c => {
-    // For HoF cards, group by induction year; for others, by card year
     let y;
     if (isHof) {
       y = c.inductionYear || (findHofPlayer(c.player) || {}).inducted || c.year || 'Unknown';
@@ -1763,26 +1851,35 @@ function renderYearGroups(containerId, cardList, isHof) {
     byYear[y].push(c);
   });
 
+  // Build HOF inductee counts per year for "X of Y" display
+  const hofByYear = {};
+  if (isHof) {
+    HOF_PLAYERS.forEach(p => {
+      const y = p.inducted || 'Unknown';
+      if (!hofByYear[y]) hofByYear[y] = 0;
+      hofByYear[y]++;
+    });
+  }
+
   const years = Object.keys(byYear).sort((a,b) => b - a);
-  container.innerHTML = years.map(year => `
-    <div class="year-group open" data-year="${year}">
+  container.innerHTML = years.map(year => {
+    const uniquePlayers = new Set(byYear[year].map(c => c.player.toLowerCase()));
+    const countLabel = isHof
+      ? uniquePlayers.size + ' of ' + (hofByYear[year] || '?')
+      : byYear[year].length + ' card' + (byYear[year].length !== 1 ? 's' : '');
+    const yearLabel = isHof ? 'Inducted ' + year : year + ' Release';
+    return `
+    <div class="year-group" data-year="${year}">
       <div class="year-group-header" onclick="this.parentElement.classList.toggle('open')">
-        <span class="year">${isHof ? 'Inducted ' : ''}${year}</span>
-        <span class="count">${byYear[year].length} card${byYear[year].length !== 1 ? 's' : ''}</span>
+        <span class="year">${yearLabel}</span>
+        <span class="count">${countLabel}</span>
         <span class="chevron">▼</span>
       </div>
       <div class="year-group-cards">
-        ${byYear[year].map(card => `
-          <div class="card-thumb ${card.hof === 'yes' ? 'hof' : ''}" onclick="openViewer('${card.id}')">
-            <img src="${card.frontImg}" alt="${card.player}" loading="lazy"
-              onerror="this.style.display='none'">
-            ${card.grade ? '<div class="thumb-grade">' + card.grade + '</div>' : ''}
-            <div class="thumb-label">${card.player}</div>
-          </div>
-        `).join('')}
+        ${byYear[year].map(card => renderCardThumb(card)).join('')}
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 }
 
 // ─── CARD VIEWER ───
@@ -1894,8 +1991,10 @@ function renderViewerCard() {
     compsEl.classList.remove('visible');
   }
 
-  document.getElementById('viewer-badge').innerHTML =
-    card.hof === 'yes' ? '<span class="hof-badge">★ Hall of Fame</span>' : '';
+  var badges = '';
+  if (card.hof === 'yes') badges += '<span class="hof-badge">★ Hall of Fame</span> ';
+  if (card.futureStar === 'yes') badges += '<span class="future-star-badge">★ Future Star</span>';
+  document.getElementById('viewer-badge').innerHTML = badges;
   document.getElementById('viewer-grade-badge').innerHTML =
     card.grade ? '<span class="grade-badge">' + card.grade + '</span>' : '';
   document.getElementById('viewer-counter').textContent =
@@ -2502,6 +2601,8 @@ function editCurrentCard() {
   document.getElementById('edit-auto').value = card.autograph || 'no';
   document.getElementById('edit-grade').value = card.grade || '';
   document.getElementById('edit-hof').value = card.hof || 'no';
+  document.getElementById('edit-future-star').value = card.futureStar || 'no';
+  document.getElementById('edit-showcase').value = card.showcase || 'no';
   document.getElementById('edit-value').value = card.value || '';
   showScreen('edit-screen');
 }
@@ -2526,6 +2627,8 @@ async function saveEditedCard() {
   } else {
     cards[idx].inductionYear = null;
   }
+  cards[idx].futureStar = document.getElementById('edit-future-star').value;
+  cards[idx].showcase = document.getElementById('edit-showcase').value;
   cards[idx].value = document.getElementById('edit-value').value;
 
   try {
