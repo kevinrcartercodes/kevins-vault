@@ -102,46 +102,41 @@ html, body {
 .top-bar .action-btn:active { opacity: 0.5; }
 
 /* ─── GLOBAL SEARCH ─── */
-.search-bar {
-  display: none; align-items: center;
-  position: absolute; left: 0; right: 0; top: 0; bottom: 0;
-  padding: 8px 16px;
-  padding-top: max(8px, env(safe-area-inset-top));
-  background: rgba(10,14,23,0.97);
-  z-index: 20;
-}
-.search-bar.visible { display: flex; }
-.search-bar input {
+.top-bar-search {
   flex: 1;
+  margin: 0 10px;
+  position: relative;
+}
+.top-bar-search input {
+  width: 100%;
   background: var(--ghost);
-  border: 1px solid rgba(201,168,76,0.2);
-  border-radius: 8px;
-  padding: 8px 12px;
+  border: 1px solid rgba(201,168,76,0.15);
+  border-radius: 20px;
+  padding: 6px 14px;
   color: var(--cream);
   font-family: 'Outfit', sans-serif;
-  font-size: 14px;
+  font-size: 13px;
   outline: none;
 }
-.search-bar input::placeholder { color: var(--silver); }
-.search-bar input:focus { border-color: var(--gold); }
-.search-bar .search-close {
-  background: none; border: none; color: var(--silver);
-  font-size: 16px; padding: 8px 8px 8px 12px; cursor: pointer;
-  font-family: 'Outfit', sans-serif;
-}
-.search-results {
+.top-bar-search input::placeholder { color: var(--silver); }
+.top-bar-search input:focus { border-color: var(--gold); }
+.search-results-overlay {
   display: none;
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
+  position: absolute;
+  left: 0; right: 0; top: 100%;
+  bottom: 0;
+  z-index: 12;
   background: var(--midnight);
-  z-index: 15;
-  flex-direction: column;
-}
-.search-results.visible { display: flex; }
-.search-results-list {
-  flex: 1; overflow-y: auto;
+  overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   padding: 8px 16px;
+}
+.search-results-overlay.visible {
+  display: block;
+  position: fixed;
+  top: auto;
+  left: 0; right: 0;
+  bottom: 0;
 }
 .search-result-item {
   display: flex; align-items: center; gap: 10px;
@@ -1025,9 +1020,11 @@ html, body {
 <!-- ════════ HOME SCREEN ════════ -->
 <div id="home-screen" class="screen active">
   <div class="top-bar">
-    <h1>THE VAULT</h1>
-    <div style="display:flex;align-items:center;gap:4px">
-      <button class="action-btn" onclick="openGlobalSearch()" title="Search" style="font-size:18px;">🔍</button>
+    <h1 style="flex-shrink:0;">THE VAULT</h1>
+    <div class="top-bar-search">
+      <input type="text" id="global-search-input" placeholder="Search all vaults..." onkeydown="if(event.key==='Enter')runGlobalSearch(this.value)">
+    </div>
+    <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
       <div class="vault-selector-wrap">
         <button class="action-btn" id="vault-selector-btn" onclick="toggleVaultMenu()" title="Select Vault">
           <span id="vault-selector-label">Kevin's</span>
@@ -1037,14 +1034,8 @@ html, body {
       </div>
       <button class="action-btn" onclick="showApiKeyModal()" title="Settings">⚙</button>
     </div>
-    <div class="search-bar" id="search-bar">
-      <input type="text" id="global-search-input" placeholder="Search all vaults..." oninput="onGlobalSearch(this.value)">
-      <button class="search-close" onclick="closeGlobalSearch()">Cancel</button>
-    </div>
   </div>
-  <div class="search-results" id="search-results">
-    <div class="search-results-list" id="search-results-list"></div>
-  </div>
+  <div class="search-results-overlay" id="search-results-overlay"></div>
   <div class="scroll-content" id="home-scroll">
     <div class="home-hero animate-in">
       <h2 id="collection-title">Kevin's Collection</h2>
@@ -2821,25 +2812,6 @@ function toast(msg, isError) {
 
 // ─── GLOBAL SEARCH ───
 var _allVaultsCache = null;
-var _searchDebounce = null;
-
-function openGlobalSearch() {
-  document.getElementById('search-bar').classList.add('visible');
-  document.getElementById('search-results').classList.add('visible');
-  const input = document.getElementById('global-search-input');
-  input.value = '';
-  input.focus();
-  document.getElementById('search-results-list').innerHTML =
-    '<div style="text-align:center;padding:40px 16px;color:var(--silver);font-size:13px;">Search by player, year, set, or series across all vaults</div>';
-  // Pre-load all vaults in background
-  if (!_allVaultsCache) loadAllVaults();
-}
-
-function closeGlobalSearch() {
-  document.getElementById('search-bar').classList.remove('visible');
-  document.getElementById('search-results').classList.remove('visible');
-  document.getElementById('global-search-input').value = '';
-}
 
 async function loadAllVaults() {
   try {
@@ -2855,32 +2827,29 @@ async function loadAllVaults() {
           data = await rawResp.json();
         }
         results[v] = Array.isArray(data) ? data : [];
-      } catch (e) {
-        results[v] = [];
-      }
+      } catch (e) { results[v] = []; }
     }));
     _allVaultsCache = results;
-  } catch (e) {
-    _allVaultsCache = {};
-  }
+  } catch (e) { _allVaultsCache = {}; }
 }
 
-function onGlobalSearch(query) {
-  clearTimeout(_searchDebounce);
-  _searchDebounce = setTimeout(() => runGlobalSearch(query), 200);
-}
+async function runGlobalSearch(query) {
+  const overlay = document.getElementById('search-results-overlay');
+  const input = document.getElementById('global-search-input');
+  input.blur();
 
-function runGlobalSearch(query) {
-  const list = document.getElementById('search-results-list');
-  if (!query || query.length < 2) {
-    list.innerHTML = '<div style="text-align:center;padding:40px 16px;color:var(--silver);font-size:13px;">Search by player, year, set, or series across all vaults</div>';
+  if (!query || query.length < 1) {
+    overlay.classList.remove('visible');
     return;
   }
-  if (!_allVaultsCache) {
-    list.innerHTML = '<div style="text-align:center;padding:40px 16px;color:var(--silver);font-size:13px;">Loading vaults...</div>';
-    loadAllVaults().then(() => runGlobalSearch(query));
-    return;
-  }
+
+  // Position overlay below the top bar
+  const topBar = document.querySelector('#home-screen .top-bar');
+  overlay.style.top = topBar.offsetHeight + 'px';
+  overlay.classList.add('visible');
+  overlay.innerHTML = '<div style="text-align:center;padding:40px 16px;color:var(--silver);font-size:13px;">Searching...</div>';
+
+  if (!_allVaultsCache) await loadAllVaults();
 
   const q = query.toLowerCase();
   const matches = [];
@@ -2889,18 +2858,18 @@ function runGlobalSearch(query) {
       const searchable = [
         card.player, card.set, card.subset, card.year, card.number, card.serial
       ].filter(Boolean).join(' ').toLowerCase();
-      if (searchable.includes(q)) {
-        matches.push({ vault, card });
-      }
+      if (searchable.includes(q)) matches.push({ vault, card });
     });
   }
 
   if (matches.length === 0) {
-    list.innerHTML = '<div style="text-align:center;padding:40px 16px;color:var(--silver);font-size:13px;">No cards found</div>';
+    overlay.innerHTML = '<div style="text-align:center;padding:40px 16px;color:var(--silver);font-size:13px;">No cards found for &ldquo;' + query + '&rdquo;</div>' +
+      '<div style="text-align:center;"><button onclick="clearSearch()" style="background:none;border:none;color:var(--gold);font-family:Outfit;font-size:14px;padding:8px;cursor:pointer;">Clear</button></div>';
     return;
   }
 
-  list.innerHTML = matches.slice(0, 50).map(m => `
+  overlay.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;padding:0 0 8px;"><span style="color:var(--silver);font-size:12px;">' + matches.length + ' result' + (matches.length !== 1 ? 's' : '') + '</span><button onclick="clearSearch()" style="background:none;border:none;color:var(--gold);font-family:Outfit;font-size:13px;padding:4px 0;cursor:pointer;">Clear</button></div>' +
+    matches.slice(0, 50).map(m => `
     <div class="search-result-item" onclick="openSearchResult('${m.vault}','${m.card.id}')">
       <img src="${m.card.frontImg}" alt="${m.card.player}" loading="lazy" onerror="this.style.display='none'">
       <div class="search-result-info">
@@ -2910,11 +2879,16 @@ function runGlobalSearch(query) {
       </div>
       <span style="color:var(--silver);font-size:13px;flex-shrink:0;">${m.card.value || ''}</span>
     </div>
-  `).join('') + (matches.length > 50 ? '<div style="text-align:center;padding:12px;color:var(--silver);font-size:12px;">Showing 50 of ' + matches.length + ' results</div>' : '');
+  `).join('') + (matches.length > 50 ? '<div style="text-align:center;padding:12px;color:var(--silver);font-size:12px;">Showing 50 of ' + matches.length + '</div>' : '');
+}
+
+function clearSearch() {
+  document.getElementById('global-search-input').value = '';
+  document.getElementById('search-results-overlay').classList.remove('visible');
 }
 
 async function openSearchResult(vault, cardId) {
-  closeGlobalSearch();
+  clearSearch();
   if (vault !== currentVault) {
     await switchVault(vault);
   }
