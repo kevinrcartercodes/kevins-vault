@@ -122,6 +122,35 @@ html, body {
 }
 .top-bar-search input::placeholder { color: var(--silver); }
 .top-bar-search input:focus { border-color: rgba(255,255,255,0.2); }
+.search-suggestions {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0; right: 0;
+  margin-top: 4px;
+  background: var(--panel);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  z-index: 100;
+  max-height: 240px;
+  overflow-y: auto;
+}
+.search-suggestions.visible { display: block; }
+.search-suggestion {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  font-size: 12px;
+  color: var(--cream);
+}
+.search-suggestion:last-child { border-bottom: none; }
+.search-suggestion:active { background: rgba(201,168,76,0.1); }
+.search-suggestion .sg-player { font-weight: 500; }
+.search-suggestion .sg-detail { color: var(--silver); font-size: 11px; margin-left: auto; }
+.search-suggestion .sg-vault { color: var(--gold); font-size: 10px; }
 .search-results-overlay {
   display: none;
   position: absolute;
@@ -1024,7 +1053,10 @@ html, body {
   <div class="top-bar">
     <h1 style="flex-shrink:0;">THE VAULT</h1>
     <div class="top-bar-search">
-      <input type="text" id="global-search-input" placeholder="Search all vaults..." onkeydown="if(event.key==='Enter')runGlobalSearch(this.value)">
+      <input type="text" id="global-search-input" placeholder="Search all vaults..." autocomplete="off"
+        oninput="onSearchInput(this.value)"
+        onkeydown="if(event.key==='Enter'){runGlobalSearch(this.value);hideSuggestions();}">
+      <div class="search-suggestions" id="search-suggestions"></div>
     </div>
     <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
       <div class="vault-selector-wrap">
@@ -2814,6 +2846,48 @@ function toast(msg, isError) {
 
 // ─── GLOBAL SEARCH ───
 var _allVaultsCache = null;
+var _suggestDebounce = null;
+
+function onSearchInput(query) {
+  clearTimeout(_suggestDebounce);
+  if (!query || query.length < 2) { hideSuggestions(); return; }
+  _suggestDebounce = setTimeout(() => showSuggestions(query), 150);
+}
+
+async function showSuggestions(query) {
+  if (!_allVaultsCache) await loadAllVaults();
+  const q = query.toLowerCase();
+  const seen = new Set();
+  const matches = [];
+  for (const [vault, cards] of Object.entries(_allVaultsCache)) {
+    cards.forEach(card => {
+      const searchable = [card.player, card.set, card.subset, card.year, card.number, card.serial].filter(Boolean).join(' ').toLowerCase();
+      if (searchable.includes(q)) {
+        const key = card.player.toLowerCase() + '|' + vault;
+        if (!seen.has(key)) { seen.add(key); matches.push({ vault, card }); }
+      }
+    });
+  }
+  const box = document.getElementById('search-suggestions');
+  if (matches.length === 0) { box.classList.remove('visible'); return; }
+  box.innerHTML = matches.slice(0, 8).map(m =>
+    `<div class="search-suggestion" onclick="openSearchResult('${m.vault}','${m.card.id}');hideSuggestions();">
+      <span class="sg-player">${m.card.player}${m.card.hof === 'yes' ? ' <span style="color:var(--gold)">★</span>' : ''}</span>
+      <span class="sg-detail">${m.card.year || ''} ${(m.card.set || '').substring(0, 20)}</span>
+      <span class="sg-vault">${vaultDisplayName(m.vault)}</span>
+    </div>`
+  ).join('');
+  box.classList.add('visible');
+}
+
+function hideSuggestions() {
+  document.getElementById('search-suggestions').classList.remove('visible');
+}
+
+// Close suggestions when tapping outside
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.top-bar-search')) hideSuggestions();
+});
 
 async function loadAllVaults() {
   try {
