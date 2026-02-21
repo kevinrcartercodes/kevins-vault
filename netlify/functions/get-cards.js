@@ -1,5 +1,3 @@
-const zlib = require('zlib');
-
 exports.handler = async (event) => {
   const gistId = process.env.GIST_ID;
   const token = process.env.GITHUB_TOKEN;
@@ -24,28 +22,20 @@ exports.handler = async (event) => {
       };
     }
 
-    let content;
-    if (file.truncated) {
-      const rawResp = await fetch(file.raw_url, {
-        headers: { 'Authorization': `token ${token}` },
-      });
-      content = await rawResp.text();
-    } else {
-      content = file.content || '[]';
+    // For large/truncated files, return the raw URL so the client can fetch directly
+    // This avoids Netlify's 6MB function response limit
+    if (file.truncated || (file.size && file.size > 5000000)) {
+      return {
+        statusCode: 200,
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+        body: JSON.stringify({ redirect: file.raw_url }),
+      };
     }
-
-    // Gzip compress to stay under Netlify's 6MB response limit
-    const compressed = zlib.gzipSync(Buffer.from(content, 'utf-8'));
 
     return {
       statusCode: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Content-Encoding': 'gzip',
-        'Access-Control-Allow-Origin': '*',
-      },
-      body: compressed.toString('base64'),
-      isBase64Encoded: true,
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      body: file.content || '[]',
     };
   } catch (err) {
     return {

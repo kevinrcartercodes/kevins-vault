@@ -1299,7 +1299,12 @@ function loadCards() {
 async function fetchCards() {
   try {
     const resp = await fetch('/.netlify/functions/get-cards?' + vaultParam());
-    const data = await resp.json();
+    let data = await resp.json();
+    // If payload was too large, server returns a redirect URL to fetch directly
+    if (data && data.redirect) {
+      const rawResp = await fetch(data.redirect);
+      data = await rawResp.json();
+    }
     window._cardsCache = Array.isArray(data) ? data : [];
   } catch (e) {
     console.error('Fetch cards error:', e);
