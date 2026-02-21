@@ -929,7 +929,7 @@ html, body {
       </div>
       <div class="stat-box">
         <div class="num" id="stat-hof">0</div>
-        <div class="label">HOF Autos</div>
+        <div class="label">HOF</div>
       </div>
       <div class="stat-box">
         <div class="num" id="stat-value">$0</div>
@@ -1705,12 +1705,12 @@ function showScreen(id) {
 function renderHome() {
   cards = loadCards();
 
-  // Auto-correct HoF status and induction year for all cards against master list
+  // Auto-correct HoF induction year for cards marked as HoF
+  // Respect manual overrides: if user set hof to 'no', don't force it back
   let changed = false;
   cards.forEach(c => {
     const hofMatch = findHofPlayer(c.player);
-    if (hofMatch) {
-      if (c.hof !== 'yes') { c.hof = 'yes'; changed = true; }
+    if (hofMatch && c.hof === 'yes') {
       if (c.inductionYear !== hofMatch.inducted) { c.inductionYear = hofMatch.inducted; changed = true; }
     }
   });
@@ -1720,8 +1720,9 @@ function renderHome() {
   const otherCards = cards.filter(c => c.hof !== 'yes');
 
   document.getElementById('stat-total').textContent = cards.length;
-  const hofAutoPlayers = new Set(cards.filter(c => c.hof === 'yes' && c.autograph === 'yes').map(c => c.player.toLowerCase()));
-  document.getElementById('stat-hof').innerHTML = hofAutoPlayers.size + '<span style="font-size:16px;color:var(--silver);font-weight:400"> / ' + HOF_PLAYERS.length + '</span>';
+  // Count unique HOF player names (not just autos)
+  const hofPlayers = new Set(cards.filter(c => c.hof === 'yes').map(c => c.player.toLowerCase()));
+  document.getElementById('stat-hof').innerHTML = hofPlayers.size + '<span style="font-size:16px;color:var(--silver);font-weight:400"> / ' + HOF_PLAYERS.length + '</span>';
   const totalVal = cards.reduce((sum, c) => {
     const v = parseFloat((c.value || '').replace(/[^0-9.]/g, ''));
     return sum + (isNaN(v) ? 0 : v);
@@ -1796,14 +1797,13 @@ function openViewer(cardId) {
 
 function buildCompsUrl(card) {
   // Build an eBay sold-listings search URL from card details
+  // Priority: player name > auto status > serial > set/series
   if (!card.player) return null;
   const parts = [];
-  if (card.year) parts.push(card.year);
-  if (card.set) parts.push(card.set);
-  if (card.subset) parts.push(card.subset);
   parts.push(card.player);
-  if (card.autograph === 'yes') parts.push('auto');
+  if (card.autograph === 'yes') parts.push('autograph');
   if (card.serial) parts.push(card.serial);
+  if (card.set) parts.push(card.set);
   if (card.grade) parts.push(card.grade);
   const query = parts.join(' ');
   return 'https://www.ebay.com/sch/i.html?_nkw=' + encodeURIComponent(query)
@@ -2358,6 +2358,12 @@ function compressImage(dataUrl, maxDim, quality) {
 }
 
 async function saveCard() {
+  // Prevent double-tap duplicates
+  const saveBtn = document.querySelector('.btn-save');
+  if (saveBtn.disabled) return;
+  saveBtn.disabled = true;
+  saveBtn.textContent = 'Saving...';
+
   const playerName = document.getElementById('res-player').value;
   const hofMatch = findHofPlayer(playerName);
 
@@ -2401,10 +2407,15 @@ async function saveCard() {
     showScreen('home-screen');
   } catch (err) {
     toast('Error saving: ' + err.message, true);
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Confirm & Save';
   }
 }
 
 function resetScan() {
+  // Re-enable save button for next scan
+  const saveBtn = document.querySelector('.btn-save');
+  if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Confirm & Save'; }
   pendingFrontData = null;
   pendingBackData = null;
   document.getElementById('front-preview').style.display = 'none';
@@ -2447,6 +2458,13 @@ async function saveEditedCard() {
   cards[idx].autograph = document.getElementById('edit-auto').value;
   cards[idx].grade = document.getElementById('edit-grade').value;
   cards[idx].hof = document.getElementById('edit-hof').value;
+  // Update inductionYear when HOF status changes
+  if (cards[idx].hof === 'yes') {
+    const hofMatch = findHofPlayer(cards[idx].player);
+    if (hofMatch) cards[idx].inductionYear = hofMatch.inducted;
+  } else {
+    cards[idx].inductionYear = null;
+  }
   cards[idx].value = document.getElementById('edit-value').value;
 
   try {

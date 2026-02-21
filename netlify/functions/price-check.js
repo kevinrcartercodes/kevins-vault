@@ -9,13 +9,13 @@ exports.handler = async (event) => {
   try {
     const card = JSON.parse(event.body);
 
-    // Build a single focused query: year + player + auto + serial
-    // Skip set/subset names — they add noise and cause zero-result misses
+    // Priority order: player name > auto status > serial numbering > set/series
+    // Player + auto + serial gives the best comps; set is secondary
     const parts = [];
-    if (card.year) parts.push(card.year);
     parts.push(card.player || '');
-    if (card.autograph === 'yes') parts.push('auto');
+    if (card.autograph === 'yes') parts.push('autograph');
     if (card.serial) parts.push(card.serial);
+    if (card.set) parts.push(card.set);
     if (card.grade) parts.push(card.grade);
     const query = parts.filter(Boolean).join(' ');
 
