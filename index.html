@@ -1771,7 +1771,44 @@ function showScreen(id) {
 }
 
 // ─── RENDER HOME ───
+function saveDropdownState() {
+  const state = {};
+  // Save section-level collapse state
+  document.querySelectorAll('.section-header.collapsible').forEach(h => {
+    const bodyId = h.getAttribute('onclick')?.match(/'([^']+)'/)?.[1];
+    if (bodyId) state['section:' + bodyId] = !h.classList.contains('collapsed');
+  });
+  // Save year-group open state
+  document.querySelectorAll('.year-group').forEach(g => {
+    const year = g.getAttribute('data-year');
+    const container = g.closest('.section-body');
+    if (year && container) state[container.id + ':' + year] = g.classList.contains('open');
+  });
+  return state;
+}
+function restoreDropdownState(state) {
+  if (!state || !Object.keys(state).length) return;
+  // Restore section-level collapse state
+  document.querySelectorAll('.section-header.collapsible').forEach(h => {
+    const bodyId = h.getAttribute('onclick')?.match(/'([^']+)'/)?.[1];
+    if (bodyId && state['section:' + bodyId] !== undefined) {
+      const open = state['section:' + bodyId];
+      h.classList.toggle('collapsed', !open);
+      document.getElementById(bodyId).classList.toggle('collapsed', !open);
+    }
+  });
+  // Restore year-group open state
+  document.querySelectorAll('.year-group').forEach(g => {
+    const year = g.getAttribute('data-year');
+    const container = g.closest('.section-body');
+    if (year && container && state[container.id + ':' + year]) {
+      g.classList.add('open');
+    }
+  });
+}
+
 function renderHome() {
+  var dropdownState = saveDropdownState();
   cards = loadCards();
 
   // Auto-correct HoF induction year for cards marked as HoF
@@ -1804,6 +1841,8 @@ function renderHome() {
 
   renderYearGroups('hof-year-groups', hofCards, 'hof');
   renderYearGroups('other-year-groups', otherCards, 'other');
+
+  restoreDropdownState(dropdownState);
 }
 
 function toggleSection(headerEl, bodyId) {
@@ -2641,21 +2680,19 @@ async function saveEditedCard() {
   cards[idx].showcase = document.getElementById('edit-showcase').value;
   cards[idx].value = document.getElementById('edit-value').value;
 
-  try {
-    const resp = await fetch('/.netlify/functions/save-card?' + vaultParam(), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(cards[idx]),
-    });
-    if (!resp.ok) throw new Error('Save failed');
-    saveCards(cards);
-    viewerCards = cards;
-    renderViewerCard();
-    toast('Card updated!');
-    showScreen('viewer-screen');
-  } catch (err) {
-    toast('Error saving: ' + err.message, true);
-  }
+  // Update local immediately, save to backend in background
+  saveCards(cards);
+  viewerCards = cards;
+  renderViewerCard();
+  toast('Card updated!');
+  showScreen('viewer-screen');
+
+  // Fire-and-forget backend save
+  fetch('/.netlify/functions/save-card?' + vaultParam(), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(cards[idx]),
+  }).catch(() => toast('Backend save failed — will retry next edit', true));
 }
 
 async function deleteCurrentCard() {
