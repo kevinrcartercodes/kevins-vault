@@ -1844,20 +1844,20 @@ async function rerateFromComps(e) {
     if (data.found && data.median > 0) {
       const newValue = '$' + data.median.toLocaleString();
       valueEl.textContent = newValue;
-      // Persist updated value
+      toast('Updated to ' + newValue);
+      // Persist updated value — fire and forget, don't block or revert on failure
       card.value = newValue;
       const cards = loadCards();
       const idx = cards.findIndex(c => c.id === card.id);
       if (idx >= 0) {
         cards[idx].value = newValue;
         saveCards(cards);
-        await fetch('/.netlify/functions/save-card?' + vaultParam(), {
+        fetch('/.netlify/functions/save-card?' + vaultParam(), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(cards[idx]),
-        });
+        }).catch(() => {});
       }
-      toast('Updated to ' + newValue);
     } else {
       valueEl.textContent = oldValue;
       toast('No sold comps found');
